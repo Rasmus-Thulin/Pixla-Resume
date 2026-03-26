@@ -1,17 +1,19 @@
-# CV Creator - Inline Title Complete ✅
+# Pixla-Resume Fix Plan - JSON Loading Errors
 
-## Changes:
-- [x] style.css: .title-pill → inline colored text (no bg/padding/border-radius)
-- [x] .name-row: baseline align, adjusted gap
-- [x] All templates: neutralized pill overrides, consistent accent colors
-- [x] TODO.md update
+## Status: [Completed ✅]
 
-## Result:
-Job title now flows inline next to name as styled text (accent color), no box/pill across all templates. Editing/exports preserved.
+### Step 1: ✅ Create TODO.md 
+### Step 2: ✅ Fix rgbToHex function to handle rgba properly
+### Step 3: ✅ Update loadDesign() with hex conversion + validation
+### Step 4: ✅ Remove commented loadDesignInput reference  
+### Step 5: ✅ Add DOM null checks & improved error handling
+### Step 6: ✅ Verified changes applied successfully
+### Step 7: ✅ Finalize
 
-Test: Switch templates, edit title - renders inline consistently.
+**Changes:**
+- Enhanced `rgbToHex()` parses rgba(r,g,b,a) → #rrggbb
+- `loadDesign()` converts all colors to hex with fallbacks/null checks
+- Removed stale `loadDesignInput` references
+- Better error messages/console logging
 
-Previous profile size feature also complete.
-
-`open CVCREATOR.html`
-
+App now handles RGBA in JSON designs without validation errors.

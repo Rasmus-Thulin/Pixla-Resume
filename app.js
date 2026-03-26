@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Design buttons moved to right box
     // const saveDesignBtn = document.getElementById('save-design-btn');
     // const loadDesignBtn = document.getElementById('load-design-btn');
-    // const loadDesignInput = document.getElementById('load-design-input');
+
     const boxBgColor = document.getElementById('box-background-color');
     const boxBorderColor = document.getElementById('box-border-color');
     const clearBoxStyleBtn = document.getElementById('clear-box-style-btn');
@@ -1135,36 +1135,35 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (e) => {
             try {
                 const design = JSON.parse(e.target.result);
-                cvPrimaryColor.value = design.primary || '#ff6b3d';
-                cvSecondaryColor.value = design.secondary || '#2e7cff';
-                cvBgColor.value = design.bg || '#ffffff';
-                cvSurfaceColor.value = design.surface || '#f6f7fb';
-                cvTextColor.value = design.text || '#0f1116';
-                cvMutedColor.value = design.muted || '#4b5565';
-                accentColorInput.value = design.accent || '#ff6b3d';
-                if (design.palette) paletteSelect.value = design.palette;
-                if (design.font) fontSelect.value = design.font;
-                if (design.background) backgroundSelect.value = design.background;
-                if (design.sectionStyle) sectionStyleSelect.value = design.sectionStyle;
-                if (design.skillStyle) skillStyleSelect.value = design.skillStyle;
-                if (design.layout) layoutSelect.value = design.layout;
-                if (design.format) formatSelect.value = design.format;
+                const safeHex = (val, def) => rgbToHex(val) || def;
+                if (cvPrimaryColor) cvPrimaryColor.value = safeHex(design.primary, '#ff6b3d');
+                if (cvSecondaryColor) cvSecondaryColor.value = safeHex(design.secondary, '#2e7cff');
+                if (cvBgColor) cvBgColor.value = safeHex(design.bg, '#ffffff');
+                if (cvSurfaceColor) cvSurfaceColor.value = safeHex(design.surface, '#f6f7fb');
+                if (cvTextColor) cvTextColor.value = safeHex(design.text, '#0f1116');
+                if (cvMutedColor) cvMutedColor.value = safeHex(design.muted, '#4b5565');
+                if (accentColorInput) accentColorInput.value = safeHex(design.accent, '#ff6b3d');
+                if (design.palette && paletteSelect) paletteSelect.value = design.palette;
+                if (design.font && fontSelect) fontSelect.value = design.font;
+                if (design.background && backgroundSelect) backgroundSelect.value = design.background;
+                if (design.sectionStyle && sectionStyleSelect) sectionStyleSelect.value = design.sectionStyle;
+                if (design.skillStyle && skillStyleSelect) skillStyleSelect.value = design.skillStyle;
+                if (design.layout && layoutSelect) layoutSelect.value = design.layout;
+                if (design.format && formatSelect) formatSelect.value = design.format;
                 updateCvColors();
-                applyCvClass(paletteSelect.value, 'palette-');
-                applyCvClass(backgroundSelect.value, 'bg-');
-                // Apply other classes
+                applyCvClass(paletteSelect?.value || '', 'palette-');
+                applyCvClass(backgroundSelect?.value || '', 'bg-');
             } catch (err) {
-                alert('Ogiltig JSON-fil');
+                console.error('JSON load error:', err);
+                alert('Kunde inte ladda design. Kontrollera att filen är giltig JSON med hex-färger (#rrggbb).\\nFel: ' + err.message);
             }
         };
         reader.readAsText(file);
-        loadDesignInput.value = '';
+        // loadDesignInput removed
     };
 
-    // Old design listeners removed - buttons moved to control box
-    // if (saveDesignBtn) saveDesignBtn.addEventListener('click', saveDesign);
-    // if (loadDesignBtn) loadDesignBtn.addEventListener('click', () => loadDesignInput.click());
-    // if (loadDesignInput) loadDesignInput.addEventListener('change', loadDesign);
+// Project listeners (design save/load)
+    // Note: loadDesignInput removed - uses dynamic input creation
 
     // Box-specific color picker
     let activeBoxColorTarget = null;
@@ -1180,19 +1179,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateActiveBoxColorPreview = () => {
         if (!activeBox) {
             boxBgColor.value = '#f6f7fb';
-            boxBorderColor.value = 'rgba(0,0,0,0.06)';
+            boxBorderColor.value = '#0a0a0a';
             return;
         }
         const computedBg = getComputedStyle(activeBox).backgroundColor;
         const computedBorder = getComputedStyle(activeBox).borderColor;
-        boxBgColor.value = rgbToHex(computedBg);
-        boxBorderColor.value = rgbToHex(computedBorder);
+        boxBgColor.value = rgbToHex(computedBg) || '#f6f7fb';
+        boxBorderColor.value = rgbToHex(computedBorder) || '#0a0a0a';
     };
 
-    function rgbToHex(rgb) {
-        if (rgb.startsWith('#')) return rgb;
-        const [r, g, b] = rgb.match(/\d+/g).map(Number);
-        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+function rgbToHex(color) {
+        if (!color) return null;
+        if (color.startsWith('#')) return color;
+
+        // Handle rgba(r,g,b,a) or rgb(r,g,b)
+        const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+        if (rgbaMatch) {
+            const r = parseInt(rgbaMatch[1]).toString(16).padStart(2, '0');
+            const g = parseInt(rgbaMatch[2]).toString(16).padStart(2, '0');
+            const b = parseInt(rgbaMatch[3]).toString(16).padStart(2, '0');
+            return '#' + r + g + b;
+        }
+
+        // Fallback for other formats (named colors etc.)
+        try {
+            const div = document.createElement('div');
+            div.style.color = color;
+            document.body.appendChild(div);
+            const computed = window.getComputedStyle(div).color;
+            document.body.removeChild(div);
+            return rgbToHex(computed); // Recursive call for computed rgb
+        } catch (e) {
+            return null;
+        }
     }
 
     boxBgColor.addEventListener('input', updateBoxColor);
