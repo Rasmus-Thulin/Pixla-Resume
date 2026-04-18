@@ -267,7 +267,63 @@ document.addEventListener('DOMContentLoaded', () => {
             layout: 'layout-one',
             skillStyle: 'skills-style-stars',
             accent: '#00f5d4'
+        },
+        'template-retro': {
+            palette: 'palette-sand',
+            font: 'font-grotesk',
+            background: 'bg-clean',
+            section: 'section-lines',
+            layout: 'layout-two',
+            skillStyle: 'skills-style-bars',
+            accent: '#ff8c42'
+        },
+        'template-corporate': {
+            palette: 'palette-studio',
+            font: 'font-plex',
+            background: 'bg-clean',
+            section: 'section-lines',
+            layout: 'layout-two',
+            skillStyle: 'skills-style-bars',
+            accent: '#1e3a5f'
+        },
+        'template-agency': {
+            palette: 'palette-ember',
+            font: 'font-grotesk',
+            background: 'bg-gradient',
+            section: 'section-cards',
+            layout: 'layout-two',
+            skillStyle: 'skills-style-bars',
+            accent: '#ff3d00'
+        },
+        'template-analog': {
+            palette: 'palette-sand',
+            font: 'font-plex',
+            background: 'bg-story',
+            section: 'section-glass',
+            layout: 'layout-two',
+            skillStyle: 'skills-style-dots',
+            accent: '#ff8c42'
+        },
+        'template-magazine': {
+            palette: 'palette-mono',
+            font: 'font-plex',
+            background: 'bg-clean',
+            section: 'section-lines',
+            layout: 'layout-two',
+            skillStyle: 'skills-style-dots',
+            accent: '#111827'
         }
+    };
+
+    const paletteColors = {
+        'palette-slate':    { primary: '#ff6b3d', secondary: '#2e7cff', bg: '#ffffff',  surface: '#f4f5fb', text: '#0f1116', muted: '#4b5565' },
+        'palette-sand':     { primary: '#ff8c42', secondary: '#ffb562', bg: '#fffaf4',  surface: '#f9f1e7', text: '#3d2b1f', muted: '#6b5a49' },
+        'palette-studio':   { primary: '#3b82f6', secondary: '#22d3ee', bg: '#f8fbff',  surface: '#eef4ff', text: '#1e3a5f', muted: '#4b6980' },
+        'palette-midnight': { primary: '#00f5d4', secondary: '#7c3aed', bg: '#f6f6ff',  surface: '#ececff', text: '#1e1b4b', muted: '#6b7280' },
+        'palette-ember':    { primary: '#ff3d00', secondary: '#ff8a00', bg: '#fff8f5',  surface: '#fff0eb', text: '#1a0a00', muted: '#7a4030' },
+        'palette-forest':   { primary: '#22c55e', secondary: '#0ea5e9', bg: '#f0fdf4',  surface: '#dcfce7', text: '#14532d', muted: '#4b7c5c' },
+        'palette-rose':     { primary: '#f43f5e', secondary: '#ec4899', bg: '#fff1f2',  surface: '#ffe4e6', text: '#4c0519', muted: '#9f4060' },
+        'palette-mono':     { primary: '#111827', secondary: '#374151', bg: '#f9fafb',  surface: '#f3f4f6', text: '#111827', muted: '#6b7280' }
     };
 
     function escapeHtml(value) {
@@ -1029,10 +1085,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateZoom() {
         cvWrapper.style.transform = `scale(${currentZoom})`;
         zoomLevelEl.textContent = `${Math.round(currentZoom * 100)}%`;
+        const statusZoomInfo = document.getElementById('status-zoom-info');
+        if (statusZoomInfo) statusZoomInfo.textContent = `Zoom: ${Math.round(currentZoom * 100)}%`;
     }
 
     function autoFitZoom() {
-        const previewArea = document.querySelector('.preview-area');
+        const previewArea = document.querySelector('.canvas-area') || document.querySelector('.preview-area');
         const padding = 60;
         const assumedHeight = formatSelect.value === 'a3' ? 1587 : 1122;
         const pageCount = page2 && !page2.classList.contains('is-hidden') ? 2 : 1;
@@ -1067,61 +1125,214 @@ document.addEventListener('DOMContentLoaded', () => {
         applyCvClass(defaults.section || 'section-cards', 'section-');
         applyCvClass(defaults.skillStyle || 'skills-style-bars', 'skills-style-');
 
-        // Set full color vars from template on :root (with fallbacks)
-        const root = document.documentElement;
-        root.style.setProperty('--cv-primary', defaults.primary || defaults.accent || '#ff6b3d');
-        root.style.setProperty('--cv-secondary', defaults.secondary || defaults.accent2 || '#2e7cff');
-        root.style.setProperty('--cv-accent', defaults.accent || '#ff6b3d');
-        if (cvPrimaryColor) cvPrimaryColor.value = defaults.primary || defaults.accent || '#ff6b3d';
-        if (cvSecondaryColor) cvSecondaryColor.value = defaults.secondary || defaults.accent2 || '#2e7cff';
-
-        accentColorInput.value = defaults.accent || '#ff6b3d';
-        cvPages.style.setProperty('--cv-accent', defaults.accent || '#ff6b3d');
+        // Sync color pickers from palette; clear any inline overrides so palette class takes effect
+        clearInlineColorVars();
+        syncColorPickersFromPalette(defaults.palette || 'palette-slate');
+        if (accentColorInput) accentColorInput.value = defaults.accent || '#ff6b3d';
     }
 
     function resetColors() {
-        cvPrimaryColor.value = '#ff6b3d';
-        cvSecondaryColor.value = '#2e7cff';
-        cvBgColor.value = '#ffffff';
-        cvSurfaceColor.value = '#f6f7fb';
-        cvTextColor.value = '#0f1116';
-        cvMutedColor.value = '#4b5565';
-        accentColorInput.value = '#ff6b3d';
-        updateCvColors();
-        // Clear palette/template classes to avoid overrides
-        cvPages.querySelectorAll('.cv').forEach(page => {
-            page.className = page.className.replace(/palette-\w+|template-\w+/g, '');
-        });
-        if (paletteSelect) paletteSelect.selectedIndex = 0;
+        clearInlineColorVars();
+        if (paletteSelect) {
+            paletteSelect.selectedIndex = 0;
+            applyCvClass(paletteSelect.value, 'palette-');
+            syncColorPickersFromPalette(paletteSelect.value);
+        }
     }
 
     if (resetColorsBtn) {
         resetColorsBtn.addEventListener('click', resetColors);
     }
 
-    // JSON Save/Load designs
-    const saveDesign = () => {
-        const design = {
-            primary: cvPrimaryColor.value,
-            secondary: cvSecondaryColor.value,
-            bg: cvBgColor.value,
-            surface: cvSurfaceColor.value,
-            text: cvTextColor.value,
-            muted: cvMutedColor.value,
-            accent: accentColorInput.value,
-            palette: paletteSelect.value,
-            font: fontSelect.value,
-            background: backgroundSelect.value,
-            sectionStyle: sectionStyleSelect.value,
-            skillStyle: skillStyleSelect.value,
-            layout: layoutSelect.value,
-            format: formatSelect.value
+    function clearInlineColorVars() {
+        const vars = ['--cv-primary', '--cv-secondary', '--cv-bg', '--cv-surface', '--cv-text', '--cv-muted', '--cv-accent', '--cv-accent-2'];
+        cvPages.querySelectorAll('.cv').forEach(page => {
+            vars.forEach(v => page.style.removeProperty(v));
+        });
+    }
+
+    function hasInlineColorOverrides() {
+        const page = cvPages.querySelector('.cv');
+        return page ? !!page.style.getPropertyValue('--cv-primary') : false;
+    }
+
+    function syncColorPickersFromPalette(paletteClass) {
+        const colors = paletteColors[paletteClass];
+        if (!colors) return;
+        if (cvPrimaryColor) cvPrimaryColor.value = colors.primary;
+        if (cvSecondaryColor) cvSecondaryColor.value = colors.secondary;
+        if (cvBgColor) cvBgColor.value = colors.bg;
+        if (cvSurfaceColor) cvSurfaceColor.value = colors.surface;
+        if (cvTextColor) cvTextColor.value = colors.text;
+        if (cvMutedColor) cvMutedColor.value = colors.muted;
+        if (accentColorInput) accentColorInput.value = colors.primary;
+    }
+
+    function collectPage2Content() {
+        if (!page2) return null;
+        const pageTitle = page2.querySelector('.page-title');
+        const pageSubtitle = page2.querySelector('.page-subtitle');
+        const sections = Array.from(page2.querySelectorAll('.cv-section')).map(section => {
+            const h3 = section.querySelector('h3');
+            const block = section.querySelector('.editable-block');
+            return {
+                title: h3 ? h3.textContent : '',
+                content: block ? block.textContent : ''
+            };
+        });
+        return {
+            pageTitle: pageTitle ? pageTitle.textContent : '',
+            pageSubtitle: pageSubtitle ? pageSubtitle.textContent : '',
+            sections
         };
-        const blob = new Blob([JSON.stringify(design, null, 2)], {type: 'application/json'});
+    }
+
+    function restorePage2Content(content) {
+        if (!page2 || !content) return;
+        const pageTitle = page2.querySelector('.page-title');
+        const pageSubtitle = page2.querySelector('.page-subtitle');
+        if (pageTitle && content.pageTitle !== undefined) pageTitle.textContent = content.pageTitle;
+        if (pageSubtitle && content.pageSubtitle !== undefined) pageSubtitle.textContent = content.pageSubtitle;
+        if (content.sections) {
+            const sections = page2.querySelectorAll('.cv-section');
+            content.sections.forEach((sData, idx) => {
+                if (!sections[idx]) return;
+                const h3 = sections[idx].querySelector('h3');
+                const block = sections[idx].querySelector('.editable-block');
+                if (h3 && sData.title !== undefined) h3.textContent = sData.title;
+                if (block && sData.content !== undefined) block.textContent = sData.content;
+            });
+        }
+    }
+
+    function loadLegacyDesign(design) {
+        const safeHex = (val, def) => (val && /^#[0-9a-f]{6}$/i.test(val)) ? val : (rgbToHex(val) || def);
+        if (cvPrimaryColor) cvPrimaryColor.value = safeHex(design.primary, '#ff6b3d');
+        if (cvSecondaryColor) cvSecondaryColor.value = safeHex(design.secondary, '#2e7cff');
+        if (cvBgColor) cvBgColor.value = safeHex(design.bg, '#ffffff');
+        if (cvSurfaceColor) cvSurfaceColor.value = safeHex(design.surface, '#f6f7fb');
+        if (cvTextColor) cvTextColor.value = safeHex(design.text, '#0f1116');
+        if (cvMutedColor) cvMutedColor.value = safeHex(design.muted, '#4b5565');
+        if (accentColorInput) accentColorInput.value = safeHex(design.accent, '#ff6b3d');
+        if (design.palette && paletteSelect) { paletteSelect.value = design.palette; applyCvClass(design.palette, 'palette-'); }
+        if (design.font && fontSelect) { fontSelect.value = design.font; applyCvClass(design.font, 'font-'); }
+        if (design.background && backgroundSelect) { backgroundSelect.value = design.background; applyCvClass(design.background, 'bg-'); }
+        if (design.sectionStyle && sectionStyleSelect) { sectionStyleSelect.value = design.sectionStyle; applyCvClass(design.sectionStyle, 'section-'); }
+        if (design.skillStyle && skillStyleSelect) { skillStyleSelect.value = design.skillStyle; applyCvClass(design.skillStyle, 'skills-style-'); }
+        if (design.layout && layoutSelect) { layoutSelect.value = design.layout; applyCvClass(design.layout, 'layout-'); }
+        if (design.format && formatSelect) { formatSelect.value = design.format; applyCvClass(design.format, 'a'); }
+        updateCvColors();
+    }
+
+    function loadFullProject(project) {
+        if (project.state) {
+            const s = project.state;
+            if (s.profile) Object.assign(state.profile, s.profile);
+            if (s.socials) Object.assign(state.socials, s.socials);
+            if (Array.isArray(s.experience)) state.experience = s.experience;
+            if (Array.isArray(s.projects)) state.projects = s.projects;
+            if (Array.isArray(s.education)) state.education = s.education;
+            if (Array.isArray(s.skills)) state.skills = s.skills;
+            if (Array.isArray(s.tools)) state.tools = s.tools;
+            if (Array.isArray(s.certs)) state.certs = s.certs;
+            if (s.profileImage !== undefined) state.profileImage = s.profileImage;
+            if (s.profileShape) state.profileShape = s.profileShape;
+            if (s.profileSize) state.profileSize = { ...s.profileSize };
+            if (s.qrDataUrl !== undefined) state.qrDataUrl = s.qrDataUrl;
+        }
+        if (project.design) {
+            const d = project.design;
+            if (d.template) {
+                document.querySelectorAll('.template-card').forEach(card => {
+                    card.classList.toggle('is-active', card.dataset.template === d.template);
+                });
+                applyCvClass(d.template, 'template-');
+            }
+            if (d.palette && paletteSelect) { paletteSelect.value = d.palette; applyCvClass(d.palette, 'palette-'); }
+            if (d.font && fontSelect) { fontSelect.value = d.font; applyCvClass(d.font, 'font-'); }
+            if (d.background && backgroundSelect) { backgroundSelect.value = d.background; applyCvClass(d.background, 'bg-'); }
+            if (d.sectionStyle && sectionStyleSelect) { sectionStyleSelect.value = d.sectionStyle; applyCvClass(d.sectionStyle, 'section-'); }
+            if (d.skillStyle && skillStyleSelect) { skillStyleSelect.value = d.skillStyle; applyCvClass(d.skillStyle, 'skills-style-'); }
+            if (d.layout && layoutSelect) { layoutSelect.value = d.layout; applyCvClass(d.layout, 'layout-'); }
+            if (d.format && formatSelect) { formatSelect.value = d.format; applyCvClass(d.format, 'a'); }
+            if (d.colors) {
+                const c = d.colors;
+                const safeHex = (val, def) => (val && /^#[0-9a-f]{6}$/i.test(val)) ? val : def;
+                if (cvPrimaryColor) cvPrimaryColor.value = safeHex(c.primary, '#ff6b3d');
+                if (cvSecondaryColor) cvSecondaryColor.value = safeHex(c.secondary, '#2e7cff');
+                if (cvBgColor) cvBgColor.value = safeHex(c.bg, '#ffffff');
+                if (cvSurfaceColor) cvSurfaceColor.value = safeHex(c.surface, '#f6f7fb');
+                if (cvTextColor) cvTextColor.value = safeHex(c.text, '#0f1116');
+                if (cvMutedColor) cvMutedColor.value = safeHex(c.muted, '#4b5565');
+                if (accentColorInput) accentColorInput.value = safeHex(c.accent, '#ff6b3d');
+                if (d.hasInlineColors) updateCvColors();
+            }
+        }
+        if (project.page2 && page2) {
+            if (project.page2.visible) {
+                page2.classList.remove('is-hidden');
+                if (togglePage2Btn) togglePage2Btn.textContent = 'Ta bort sida 2';
+            } else {
+                page2.classList.add('is-hidden');
+                if (togglePage2Btn) togglePage2Btn.textContent = 'Lägg till sida 2';
+            }
+            if (project.page2.content) restorePage2Content(project.page2.content);
+        }
+        syncInputs();
+        renderEditors();
+        renderAll();
+        autoFitZoom();
+    }
+
+    // Project save/load (full state + design)
+    const saveDesign = () => {
+        const safeName = (state.profile.name || 'CV').trim().replace(/\s+/g, '_');
+        const project = {
+            version: 2,
+            design: {
+                template: document.querySelector('.template-card.is-active')?.dataset.template || 'template-minimal',
+                palette: paletteSelect.value,
+                font: fontSelect.value,
+                background: backgroundSelect.value,
+                sectionStyle: sectionStyleSelect.value,
+                skillStyle: skillStyleSelect.value,
+                layout: layoutSelect.value,
+                format: formatSelect.value,
+                colors: {
+                    primary: cvPrimaryColor.value,
+                    secondary: cvSecondaryColor.value,
+                    bg: cvBgColor.value,
+                    surface: cvSurfaceColor.value,
+                    text: cvTextColor.value,
+                    muted: cvMutedColor.value,
+                    accent: accentColorInput.value
+                },
+                hasInlineColors: hasInlineColorOverrides()
+            },
+            state: {
+                profile: { ...state.profile },
+                socials: { ...state.socials },
+                experience: JSON.parse(JSON.stringify(state.experience)),
+                projects: JSON.parse(JSON.stringify(state.projects)),
+                education: JSON.parse(JSON.stringify(state.education)),
+                skills: JSON.parse(JSON.stringify(state.skills)),
+                tools: JSON.parse(JSON.stringify(state.tools)),
+                certs: JSON.parse(JSON.stringify(state.certs)),
+                profileImage: state.profileImage,
+                profileShape: state.profileShape,
+                profileSize: { ...state.profileSize },
+                qrDataUrl: state.qrDataUrl
+            },
+            page2: {
+                visible: page2 ? !page2.classList.contains('is-hidden') : false,
+                content: collectPage2Content()
+            }
+        };
+        const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `cv-design-${Date.now()}.json`;
+        a.download = `${safeName}_CV_${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1134,32 +1345,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const design = JSON.parse(e.target.result);
-                const safeHex = (val, def) => rgbToHex(val) || def;
-                if (cvPrimaryColor) cvPrimaryColor.value = safeHex(design.primary, '#ff6b3d');
-                if (cvSecondaryColor) cvSecondaryColor.value = safeHex(design.secondary, '#2e7cff');
-                if (cvBgColor) cvBgColor.value = safeHex(design.bg, '#ffffff');
-                if (cvSurfaceColor) cvSurfaceColor.value = safeHex(design.surface, '#f6f7fb');
-                if (cvTextColor) cvTextColor.value = safeHex(design.text, '#0f1116');
-                if (cvMutedColor) cvMutedColor.value = safeHex(design.muted, '#4b5565');
-                if (accentColorInput) accentColorInput.value = safeHex(design.accent, '#ff6b3d');
-                if (design.palette && paletteSelect) paletteSelect.value = design.palette;
-                if (design.font && fontSelect) fontSelect.value = design.font;
-                if (design.background && backgroundSelect) backgroundSelect.value = design.background;
-                if (design.sectionStyle && sectionStyleSelect) sectionStyleSelect.value = design.sectionStyle;
-                if (design.skillStyle && skillStyleSelect) skillStyleSelect.value = design.skillStyle;
-                if (design.layout && layoutSelect) layoutSelect.value = design.layout;
-                if (design.format && formatSelect) formatSelect.value = design.format;
-                updateCvColors();
-                applyCvClass(paletteSelect?.value || '', 'palette-');
-                applyCvClass(backgroundSelect?.value || '', 'bg-');
+                const project = JSON.parse(e.target.result);
+                if (project.version === 2) {
+                    loadFullProject(project);
+                } else {
+                    loadLegacyDesign(project);
+                }
             } catch (err) {
                 console.error('JSON load error:', err);
-                alert('Kunde inte ladda design. Kontrollera att filen är giltig JSON med hex-färger (#rrggbb).\\nFel: ' + err.message);
+                alert('Kunde inte ladda projekt. Kontrollera att filen är giltig JSON.\nFel: ' + err.message);
             }
         };
         reader.readAsText(file);
-        // loadDesignInput removed
     };
 
 // Project listeners (design save/load)
@@ -1272,10 +1469,10 @@ function rgbToHex(color) {
     }
 
     templateGrid.addEventListener('click', (event) => {
-        const button = event.target.closest('.template-card');
+        const button = event.target.closest('[data-template]');
         if (!button) return;
         const templateClass = button.dataset.template;
-        document.querySelectorAll('.template-card').forEach((card) => card.classList.remove('is-active'));
+        templateGrid.querySelectorAll('[data-template]').forEach((card) => card.classList.remove('is-active'));
         button.classList.add('is-active');
         applyCvClass(templateClass, 'template-');
         applyTemplateDefaults(templateClass);
@@ -1287,25 +1484,29 @@ function rgbToHex(color) {
     });
 
     layoutSelect.addEventListener('change', () => applyCvClass(layoutSelect.value, 'layout-'));
-    paletteSelect.addEventListener('change', () => applyCvClass(paletteSelect.value, 'palette-'));
+    paletteSelect.addEventListener('change', () => {
+        applyCvClass(paletteSelect.value, 'palette-');
+        clearInlineColorVars();
+        syncColorPickersFromPalette(paletteSelect.value);
+    });
     fontSelect.addEventListener('change', () => applyCvClass(fontSelect.value, 'font-'));
     backgroundSelect.addEventListener('change', () => applyCvClass(backgroundSelect.value, 'bg-'));
     sectionStyleSelect.addEventListener('change', () => applyCvClass(sectionStyleSelect.value, 'section-'));
     skillStyleSelect.addEventListener('change', () => applyCvClass(skillStyleSelect.value, 'skills-style-'));
 
-    // New color pickers for full CV customization (override classes via :root)
+    // New color pickers for full CV customization
+    // Set vars directly on .cv elements so they override palette class variables (which are also on .cv)
     const updateCvColors = () => {
-        const root = document.documentElement;
-        root.style.setProperty('--cv-primary', cvPrimaryColor.value);
-        root.style.setProperty('--cv-secondary', cvSecondaryColor.value);
-        root.style.setProperty('--cv-bg', cvBgColor.value);
-        root.style.setProperty('--cv-surface', cvSurfaceColor.value);
-        root.style.setProperty('--cv-text', cvTextColor.value);
-        root.style.setProperty('--cv-muted', cvMutedColor.value);
-        root.style.setProperty('--cv-accent', cvPrimaryColor.value);
-        root.style.setProperty('--cv-accent-2', cvSecondaryColor.value);
-        root.style.setProperty('--cv-border', '#0000000d');
-        root.style.setProperty('--cv-shadow', 'rgba(0,0,0,0.45)');
+        cvPages.querySelectorAll('.cv').forEach(page => {
+            page.style.setProperty('--cv-primary', cvPrimaryColor.value);
+            page.style.setProperty('--cv-secondary', cvSecondaryColor.value);
+            page.style.setProperty('--cv-bg', cvBgColor.value);
+            page.style.setProperty('--cv-surface', cvSurfaceColor.value);
+            page.style.setProperty('--cv-text', cvTextColor.value);
+            page.style.setProperty('--cv-muted', cvMutedColor.value);
+            page.style.setProperty('--cv-accent', cvPrimaryColor.value);
+            page.style.setProperty('--cv-accent-2', cvSecondaryColor.value);
+        });
     };
 
     cvPrimaryColor.addEventListener('input', updateCvColors);
@@ -1316,7 +1517,9 @@ function rgbToHex(color) {
     cvMutedColor.addEventListener('input', updateCvColors);
 
     accentColorInput.addEventListener('input', () => {
-        cvPages.style.setProperty('--cv-accent', accentColorInput.value);
+        cvPages.querySelectorAll('.cv').forEach(page => {
+            page.style.setProperty('--cv-accent', accentColorInput.value);
+        });
     });
 
     nameInput.addEventListener('input', () => {
@@ -1486,7 +1689,7 @@ function rgbToHex(color) {
     });
 
     document.addEventListener('pointerdown', (event) => {
-        if (!event.target.closest('.draggable-box')) {
+        if (!event.target.closest('.draggable-box') && !event.target.closest('.panels-dock')) {
             setActiveBox(null);
         }
     });
@@ -1696,15 +1899,264 @@ function rgbToHex(color) {
 
     window.addEventListener('resize', autoFitZoom);
 
+    // ═══ PANEL TABS ═══
+    function switchToPanel(panelId) {
+        document.querySelectorAll('.panel-pane').forEach(p => {
+            p.style.display = 'none';
+            p.classList.remove('is-active');
+        });
+        document.querySelectorAll('.panel-tab-btn').forEach(b => b.classList.remove('is-active'));
+        const pane = document.getElementById('panel-' + panelId);
+        if (pane) { pane.style.display = 'flex'; pane.classList.add('is-active'); }
+        const tab = document.querySelector(`.panel-tab-btn[data-panel="${panelId}"]`);
+        if (tab) tab.classList.add('is-active');
+    }
+
+    document.querySelectorAll('.panel-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchToPanel(btn.dataset.panel));
+    });
+
+    // ═══ PALETTE SWATCHES ═══
+    function syncPaletteSwatches(palValue) {
+        document.querySelectorAll('.pal-swatch[data-palette]').forEach(b => {
+            b.classList.toggle('is-active', b.dataset.palette === palValue);
+        });
+    }
+
+    document.querySelectorAll('.pal-swatch[data-palette]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const pal = btn.dataset.palette;
+            if (paletteSelect) paletteSelect.value = pal;
+            applyCvClass(pal, 'palette-');
+            clearInlineColorVars();
+            syncColorPickersFromPalette(pal);
+            syncPaletteSwatches(pal);
+        });
+    });
+
+    // ═══ STATUS BAR ═══
+    const statusSelInfo = document.getElementById('status-selection-info');
+    const statusZoomInfo = document.getElementById('status-zoom-info');
+
+    function updateStatusBar(selectionLabel) {
+        if (statusSelInfo) statusSelInfo.textContent = selectionLabel || 'Klicka på ett element i canvas';
+        if (statusZoomInfo) statusZoomInfo.textContent = `Zoom: ${Math.round((currentZoom || 1) * 100)}%`;
+    }
+
+    // ═══ CONTEXT PANEL ═══
+    function detectBoxContext(box) {
+        if (!box) return null;
+        if (box.dataset.section === 'socials') return { type: 'socials', field: box.dataset.field };
+        if (box.classList.contains('profile-photo')) return { type: 'profile-photo' };
+        if (box.classList.contains('qr-card')) return { type: 'qr' };
+        if (box.classList.contains('contact-item')) return { type: 'contact' };
+        if (box.id === 'cv-name' || box.id === 'cv-title' || box.id === 'cv-tagline') return { type: 'profile' };
+        const editable = box.querySelector('[data-section]');
+        if (!editable) return { type: 'generic' };
+        const section = editable.dataset.section;
+        const index = editable.dataset.index !== undefined ? Number(editable.dataset.index) : null;
+        return { type: section, index };
+    }
+
+    function renderCtxEntry(section, index, item, title, fields) {
+        const fh = fields.map(f => {
+            const val = escapeHtml(item[f.field] || '');
+            if (f.type === 'textarea') return `<label class="ctx-label">${f.label}</label><textarea class="ctx-input" data-ctx-section="${section}" data-ctx-index="${index}" data-ctx-field="${f.field}">${val}</textarea>`;
+            return `<label class="ctx-label">${f.label}</label><input type="text" class="ctx-input" data-ctx-section="${section}" data-ctx-index="${index}" data-ctx-field="${f.field}" value="${val}">`;
+        }).join('');
+        return `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">${title}</span><button class="ctx-del-btn" data-ctx-action="delete" data-ctx-section="${section}" data-ctx-index="${index}">Ta bort</button></div><div class="ctx-fields">${fh}</div></div>`;
+    }
+
+    function renderContextPanel(box) {
+        const ctxEditor = document.getElementById('context-editor');
+        const boxStyleSection = document.getElementById('box-style-section');
+        const noSelMsg = document.getElementById('panel-no-selection');
+        if (!ctxEditor) return;
+
+        if (!box) {
+            ctxEditor.style.display = 'none';
+            ctxEditor.innerHTML = '';
+            if (boxStyleSection) boxStyleSection.style.display = 'none';
+            if (noSelMsg) noSelMsg.style.display = 'flex';
+            updateStatusBar(null);
+            return;
+        }
+
+        if (noSelMsg) noSelMsg.style.display = 'none';
+        ctxEditor.style.display = 'flex';
+        if (boxStyleSection) boxStyleSection.style.display = 'block';
+
+        const ctx = detectBoxContext(box);
+        let html = '', label = 'Element';
+
+        if (ctx && ctx.type === 'experience' && ctx.index !== null) {
+            const item = state.experience[ctx.index] || {};
+            label = 'Erfarenhet';
+            html = renderCtxEntry('experience', ctx.index, item, '💼 Erfarenhet', [
+                { field: 'role', label: 'Roll', type: 'text' },
+                { field: 'company', label: 'Företag', type: 'text' },
+                { field: 'period', label: 'Period', type: 'text' },
+                { field: 'description', label: 'Beskrivning', type: 'textarea' }
+            ]);
+        } else if (ctx && ctx.type === 'education' && ctx.index !== null) {
+            const item = state.education[ctx.index] || {};
+            label = 'Utbildning';
+            html = renderCtxEntry('education', ctx.index, item, '🎓 Utbildning', [
+                { field: 'program', label: 'Program', type: 'text' },
+                { field: 'school', label: 'Skola', type: 'text' },
+                { field: 'period', label: 'Period', type: 'text' },
+                { field: 'description', label: 'Beskrivning', type: 'textarea' }
+            ]);
+        } else if (ctx && ctx.type === 'certs' && ctx.index !== null) {
+            const item = state.certs[ctx.index] || {};
+            label = 'Certifikat';
+            html = renderCtxEntry('certs', ctx.index, item, '🏆 Certifikat', [
+                { field: 'name', label: 'Namn', type: 'text' },
+                { field: 'issuer', label: 'Utfärdare', type: 'text' },
+                { field: 'year', label: 'År', type: 'text' },
+                { field: 'link', label: 'Länk', type: 'text' }
+            ]);
+        } else if (ctx && ctx.type === 'projects' && ctx.index !== null) {
+            const item = state.projects[ctx.index] || {};
+            label = 'Projekt';
+            html = renderCtxEntry('projects', ctx.index, item, '📁 Projekt', [
+                { field: 'title', label: 'Titel', type: 'text' },
+                { field: 'role', label: 'Roll', type: 'text' },
+                { field: 'description', label: 'Beskrivning', type: 'textarea' },
+                { field: 'link', label: 'Länk', type: 'text' },
+                { field: 'video', label: 'Video / Reel', type: 'text' }
+            ]);
+        } else if (ctx && ctx.type === 'skills' && ctx.index !== null) {
+            const item = state.skills[ctx.index] || {};
+            label = 'Färdighet';
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">⭐ Färdighet</span><button class="ctx-del-btn" data-ctx-action="delete" data-ctx-section="skills" data-ctx-index="${ctx.index}">Ta bort</button></div><div class="ctx-fields"><label class="ctx-label">Namn</label><input type="text" class="ctx-input" data-ctx-section="skills" data-ctx-index="${ctx.index}" data-ctx-field="name" value="${escapeHtml(item.name || '')}"><label class="ctx-label">Nivå (0–100)</label><input type="range" class="ctx-input" data-ctx-section="skills" data-ctx-index="${ctx.index}" data-ctx-field="level" min="0" max="100" value="${Number(item.level) || 0}"></div></div>`;
+        } else if (ctx && ctx.type === 'tools' && ctx.index !== null) {
+            const item = state.tools[ctx.index] || {};
+            label = 'Verktyg';
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">🔧 Verktyg</span><button class="ctx-del-btn" data-ctx-action="delete" data-ctx-section="tools" data-ctx-index="${ctx.index}">Ta bort</button></div><div class="ctx-fields"><label class="ctx-label">Namn</label><input type="text" class="ctx-input" data-ctx-section="tools" data-ctx-index="${ctx.index}" data-ctx-field="name" value="${escapeHtml(item.name || '')}"></div></div>`;
+        } else if (ctx && ctx.type === 'profile') {
+            label = 'Profil';
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">👤 Profil</span></div><div class="ctx-fields"><label class="ctx-label">Namn</label><input type="text" class="ctx-input" data-ctx-profile="name" value="${escapeHtml(state.profile.name || '')}"><label class="ctx-label">Titel</label><input type="text" class="ctx-input" data-ctx-profile="title" value="${escapeHtml(state.profile.title || '')}"><label class="ctx-label">Tagline</label><textarea class="ctx-input" data-ctx-profile="tagline">${escapeHtml(state.profile.tagline || '')}</textarea></div></div>`;
+        } else if (ctx && ctx.type === 'profile-photo') {
+            label = 'Profilbild';
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">🖼 Profilbild</span></div><div class="ctx-fields"><button class="ctx-action-btn" id="ctx-upload-photo">Ladda upp bild</button><button class="ctx-action-btn ctx-danger-btn" id="ctx-remove-photo">Ta bort bild</button><label class="ctx-label">Bildform</label><select class="ctx-input" data-ctx-profile-shape="true"><option value="rounded" ${state.profileShape==='rounded'?'selected':''}>Rundad</option><option value="square" ${state.profileShape==='square'?'selected':''}>Fyrkant</option><option value="circle" ${state.profileShape==='circle'?'selected':''}>Cirkel</option><option value="rect" ${state.profileShape==='rect'?'selected':''}>Rektangel</option></select></div></div>`;
+        } else if (ctx && ctx.type === 'socials') {
+            const labels = { linkedin: 'LinkedIn', behance: 'Behance', instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', vimeo: 'Vimeo' };
+            label = labels[ctx.field] || 'Social';
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">🔗 ${label}</span></div><div class="ctx-fields"><label class="ctx-label">${label}</label><input type="text" class="ctx-input" data-ctx-social="${ctx.field}" value="${escapeHtml(state.socials[ctx.field] || '')}"></div></div>`;
+        } else if (ctx && ctx.type === 'qr') {
+            label = 'QR-kod';
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">◻ QR-kod</span></div><div class="ctx-fields"><label class="ctx-label">Portfolio URL</label><input type="text" class="ctx-input" data-ctx-profile="portfolio" value="${escapeHtml(state.profile.portfolio || '')}"><button class="ctx-action-btn" id="ctx-gen-qr">Generera QR-kod</button></div></div>`;
+        } else if (ctx && ctx.type === 'contact') {
+            label = 'Kontakt';
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">📋 Kontakt</span></div><div class="ctx-fields"><label class="ctx-label">E-post</label><input type="text" class="ctx-input" data-ctx-profile="email" value="${escapeHtml(state.profile.email || '')}"><label class="ctx-label">Telefon</label><input type="text" class="ctx-input" data-ctx-profile="phone" value="${escapeHtml(state.profile.phone || '')}"><label class="ctx-label">Plats</label><input type="text" class="ctx-input" data-ctx-profile="location" value="${escapeHtml(state.profile.location || '')}"><label class="ctx-label">Webbplats</label><input type="text" class="ctx-input" data-ctx-profile="website" value="${escapeHtml(state.profile.website || '')}"></div></div>`;
+        } else {
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">Element</span></div><div class="ctx-fields"><p style="font-size:0.75rem;color:var(--ui-muted,#888)">Justera box-stilen nedan.</p></div></div>`;
+        }
+
+        ctxEditor.innerHTML = html;
+        bindContextPanelEvents();
+        updateStatusBar(label + ' markerat');
+        switchToPanel('properties');
+    }
+
+    function bindContextPanelEvents() {
+        const ctxEditor = document.getElementById('context-editor');
+        if (!ctxEditor) return;
+        ctxEditor.removeEventListener('input', handleContextInput);
+        ctxEditor.removeEventListener('change', handleContextChange);
+        ctxEditor.removeEventListener('click', handleContextClick);
+        ctxEditor.addEventListener('input', handleContextInput);
+        ctxEditor.addEventListener('change', handleContextChange);
+        ctxEditor.addEventListener('click', handleContextClick);
+    }
+
+    function handleContextInput(event) {
+        const t = event.target;
+        if (t.dataset.ctxSection) {
+            const section = t.dataset.ctxSection;
+            const index = Number(t.dataset.ctxIndex);
+            const field = t.dataset.ctxField;
+            const map = { experience: state.experience, education: state.education, certs: state.certs, projects: state.projects, skills: state.skills, tools: state.tools };
+            const arr = map[section];
+            if (arr && arr[index] !== undefined) {
+                arr[index][field] = t.value;
+                const renders = { experience: renderExperience, education: renderEducation, certs: renderCerts, projects: renderProjects, skills: renderSkills, tools: renderTools };
+                if (renders[section]) renders[section]();
+            }
+        }
+        if (t.dataset.ctxProfile) {
+            const field = t.dataset.ctxProfile;
+            state.profile[field] = t.value;
+            const inputMap = { name: nameInput, title: titleInput, tagline: taglineInput, email: emailInput, phone: phoneInput, location: locationInput, website: websiteInput, portfolio: portfolioInput };
+            if (inputMap[field]) inputMap[field].value = t.value;
+            if (field === 'portfolio') { renderQr(); } else { updateProfilePreview(); }
+        }
+        if (t.dataset.ctxSocial) {
+            const field = t.dataset.ctxSocial;
+            state.socials[field] = t.value;
+            const inputMap = { linkedin: linkedinInput, behance: behanceInput, instagram: instagramInput, tiktok: tiktokInput, youtube: youtubeInput, vimeo: vimeoInput };
+            if (inputMap[field]) inputMap[field].value = t.value;
+            renderSocials();
+        }
+    }
+
+    function handleContextChange(event) {
+        const t = event.target;
+        if (t.dataset.ctxProfileShape) {
+            state.profileShape = t.value;
+            if (profileShapeSelect) profileShapeSelect.value = t.value;
+            updateProfilePreview();
+        }
+        if (t.dataset.ctxSection === 'skills' && t.dataset.ctxField === 'level') {
+            const index = Number(t.dataset.ctxIndex);
+            const level = Math.max(0, Math.min(100, Number(t.value)));
+            state.skills[index].level = level;
+            renderSkills();
+            syncSkillLevelInput(index, level);
+        }
+    }
+
+    function handleContextClick(event) {
+        const delBtn = event.target.closest('[data-ctx-action="delete"]');
+        if (delBtn) {
+            const section = delBtn.dataset.ctxSection;
+            const index = Number(delBtn.dataset.ctxIndex);
+            const map = { experience: state.experience, education: state.education, certs: state.certs, projects: state.projects, skills: state.skills, tools: state.tools };
+            const arr = map[section];
+            if (arr) {
+                arr.splice(index, 1);
+                renderEditors();
+                const renders = { experience: renderExperience, education: renderEducation, certs: renderCerts, projects: renderProjects, skills: renderSkills, tools: renderTools };
+                if (renders[section]) renders[section]();
+            }
+            setActiveBox(null);
+            return;
+        }
+        if (event.target.id === 'ctx-upload-photo') { profileImageInput.click(); return; }
+        if (event.target.id === 'ctx-remove-photo') { state.profileImage = ''; updateProfilePreview(); return; }
+        if (event.target.id === 'ctx-gen-qr') { generateQr(); return; }
+    }
+
+    // Hook context panel into setActiveBox
+    const _origSetActiveBox = setActiveBox;
+    setActiveBox = (box) => {
+        _origSetActiveBox(box);
+        renderContextPanel(box);
+    };
+
     function init() {
         syncInputs();
-        const activeTemplate = document.querySelector('.template-card.is-active')?.dataset.template;
+        const activeTemplate = document.querySelector('#template-grid [data-template].is-active')?.dataset.template;
         if (activeTemplate) applyTemplateDefaults(activeTemplate);
+        if (paletteSelect) syncPaletteSwatches(paletteSelect.value);
         renderEditors();
         renderAll();
         autoFitZoom();
         generateQr();
         refreshDraggableBoxes();
+        switchToPanel('properties');
+        updateStatusBar(null);
     }
 
     bindEditorEvents();

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="sv">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,293 +7,128 @@
     <link rel="stylesheet" href="style.css">
     <script src="html2canvas.min.js"></script>
 </head>
-
 <body>
-    <div class="app-container">
-        <aside class="editor-sidebar no-print">
-            <header class="editor-header">
-                <div class="brand-mark">CV</div>
-                <div>
-                    <h1>Broadcast CV Creator</h1>
-                    <p class="editor-subtitle">Skapa en kreativ CV/PDF för broadcast & content.</p>
-                </div>
-            </header>
+<div class="app-container">
 
-            <div class="editor-content">
-                <div class="form-group">
-<label>Template</label>
-                    <div class="template-grid" id="template-grid">
-                        <button class="template-card is-active" data-template="template-minimal">
-                            <span class="template-title">Minimalist Creative</span>
-                            <span class="template-sub">Rena linjer & mycket luft</span>
-                            <span class="template-preview minimal"></span>
-                        </button>
-                        <button class="template-card" data-template="template-dynamic">
-                            <span class="template-title">Dynamic Portfolio</span>
-                            <span class="template-sub">Färgytor & projektfokus</span>
-                            <span class="template-preview dynamic"></span>
-                        </button>
-                        <button class="template-card" data-template="template-story">
-                            <span class="template-title">Visual Storyteller</span>
-                            <span class="template-sub">Grafik & mjuk rörelse</span>
-                            <span class="template-preview story"></span>
-                        </button>
-                        <button class="template-card" data-template="template-noir">
-                            <span class="template-title">Noir Studio</span>
-                            <span class="template-sub">Mörk, filmisk, kontrast</span>
-                            <span class="template-preview noir"></span>
-                        </button>
-                        <button class="template-card" data-template="template-geo">
-                            <span class="template-title">Geometric Signal</span>
-                            <span class="template-sub">Skarpa block & signalformer</span>
-                            <span class="template-preview geo"></span>
-                        </button>
-                        <button class="template-card" data-template="template-editorial">
-                            <span class="template-title">Editorial Frame</span>
-                            <span class="template-sub">Redaktionell, luft & linjer</span>
-                            <span class="template-preview editorial"></span>
-                        </button>
-                        <button class="template-card" data-template="template-neon">
-                            <span class="template-title">Neon Broadcast</span>
-                            <span class="template-sub">Glow, tech & nattkänsla</span>
-                            <span class="template-preview neon"></span>
-                        </button>
-                    </div>
-                </div>
+    <!-- ═══ TOP BAR ═══ -->
+    <header class="app-topbar no-print">
+        <div class="topbar-brand">
+            <span class="brand-mark-sm">CV</span>
+            <span class="brand-title-sm">Broadcast CV</span>
+        </div>
 
-                <div class="form-group">
-<label>Format & Layout</label>
-                    <div class="field-row">
-                        <select id="format-select">
-                            <option value="a4">A4 (210 x 297 mm)</option>
-                            <option value="a3">A3 (297 x 420 mm)</option>
-                        </select>
-                        <select id="layout-select">
-                            <option value="layout-two">Tvåspalt</option>
-                            <option value="layout-one">Enspalt</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-<label>Design</label>
-                    <div class="field-row">
-                        <select id="palette-select">
-                            <option value="palette-slate">Broadcast Slate</option>
-                            <option value="palette-sand">Warm Sand</option>
-                            <option value="palette-studio">Studio Blue</option>
-                            <option value="palette-midnight">Midnight Neon</option>
-                        </select>
-                        <select id="font-select">
-                            <option value="font-sora">Sora + Plex</option>
-                            <option value="font-grotesk">Space Grotesk</option>
-                            <option value="font-plex">IBM Plex</option>
-                        </select>
-                    </div>
-                    <div class="field-row">
-                        <select id="background-select">
-                            <option value="bg-clean">Bakgrund Clean</option>
-                            <option value="bg-gradient">Bakgrund Gradient</option>
-                            <option value="bg-studio">Bakgrund Studio Grid</option>
-                            <option value="bg-story">Bakgrund Story Aura</option>
-                            <option value="bg-dark-noir">Bakgrund Dark Noir</option>
-                            <option value="bg-dark-slate">Bakgrund Dark Slate</option>
-                            <option value="bg-dark-prism">Bakgrund Dark Prism</option>
-                            <option value="bg-dark-studio">Bakgrund Dark Studio</option>
-                        </select>
-                        <select id="section-style-select">
-                            <option value="section-cards">Sektioner Kort</option>
-                            <option value="section-lines">Sektioner Linjer</option>
-                            <option value="section-glass">Sektioner Glass</option>
-                        </select>
-                    </div>
-                    <div class="field-row">
-                        <div class="color-field">
-                            <label class="mini-label">Primär</label>
-                            <input type="color" id="cv-primary-color" value="#ff6b3d">
-                        </div>
-                        <div class="color-field">
-                            <label class="mini-label">Sekundär</label>
-                            <input type="color" id="cv-secondary-color" value="#2e7cff">
-                        </div>
-                        <div class="color-field">
-                            <label class="mini-label">Bakgrund</label>
-                            <input type="color" id="cv-bg-color" value="#ffffff">
-                        </div>
-                        <div class="color-field">
-                            <label class="mini-label">Yta</label>
-                            <input type="color" id="cv-surface-color" value="#f6f7fb">
-                        </div>
-                    </div>
-                    <div class="field-row">
-                        <div class="color-field">
-                            <label class="mini-label">Text</label>
-                            <input type="color" id="cv-text-color" value="#0f1116">
-                        </div>
-                        <div class="color-field">
-                            <label class="mini-label">Muted</label>
-                            <input type="color" id="cv-muted-color" value="#4b5565">
-                        </div>
-                        <div class="color-field">
-                            <label class="mini-label">Accent (gammal)</label>
-                            <input type="color" id="accent-color" value="#ff6b3d">
-                        </div>
-                        <div class="color-field">
-                            <label class="mini-label">Skill-stil</label>
-                            <select id="skill-style-select">
-                                <option value="skills-style-bars">Staplar</option>
-                                <option value="skills-style-dots">Prickar</option>
-                                <option value="skills-style-stars">Stjärnor</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field-row">
-                <button class="secondary-btn" id="reset-colors-btn" type="button">Återställ färger</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-<label>Profile</label>
-                    <input type="text" id="name-input" placeholder="Namn">
-                    <input type="text" id="title-input" placeholder="Titel">
-                    <div class="field-row">
-                        <input type="text" id="email-input" placeholder="E-post">
-                        <input type="text" id="phone-input" placeholder="Telefon">
-                    </div>
-                    <div class="field-row">
-                        <input type="text" id="location-input" placeholder="Plats">
-                        <input type="text" id="website-input" placeholder="Webb">
-                    </div>
-                    <textarea id="tagline-input" placeholder="Kort tagline / pitch"></textarea>
-
-                    <div class="field-row">
-                        <input type="text" id="portfolio-input" placeholder="Portfolio / Reel URL">
-                        <button class="mini-btn" id="generate-qr-btn">QR-kod</button>
-                    </div>
-
-                    <div class="file-drop" id="profile-drop">
-                        <input type="file" id="profile-image-input" accept="image/*">
-                        <div class="file-drop-inner">
-                            <span>Profilbild (dra & släpp eller klicka)</span>
-                            <button class="mini-btn" id="remove-profile-btn" type="button">Ta bort</button>
-                        </div>
-                    </div>
-<div class="field-row profile-shape-group">
-                        <label class="mini-label">Bildform</label>
-                        <select id="profile-shape-select">
-                            <option value="rounded">Rundad</option>
-                            <option value="square">Fyrkant</option>
-                            <option value="circle">Cirkel</option>
-                            <option value="rect">Rektangel</option>
-                        </select>
-                    </div>
-                    <div class="field-row profile-size-group">
-                        <label class="mini-label">Bredd</label>
-                        <input type="number" id="profile-width-input" min="80" max="300" value="120">
-                        <label class="mini-label">Höjd</label>
-                        <input type="number" id="profile-height-input" min="80" max="300" value="120">
-                    </div>
-                </div>
-
-                <div class="form-group">
-<label>Social</label>
-                    <div class="field-row">
-                        <input type="text" id="linkedin-input" placeholder="LinkedIn">
-                        <input type="text" id="behance-input" placeholder="Behance">
-                    </div>
-                    <div class="field-row">
-                        <input type="text" id="instagram-input" placeholder="Instagram">
-                        <input type="text" id="tiktok-input" placeholder="TikTok">
-                    </div>
-                    <div class="field-row">
-                        <input type="text" id="youtube-input" placeholder="YouTube">
-                        <input type="text" id="vimeo-input" placeholder="Vimeo">
-                    </div>
-                </div>
-
-                <div class="form-group">
-<label>Experience</label>
-                    <div class="list-editor" id="experience-editor"></div>
-                    <button class="secondary-btn" id="add-experience-btn">+ Lägg till erfarenhet</button>
-                </div>
-
-                <div class="form-group">
-<label>Projects / Portfolio</label>
-                    <div class="list-editor" id="project-editor"></div>
-                    <button class="secondary-btn" id="add-project-btn">+ Lägg till projekt</button>
-                </div>
-
-                <div class="form-group">
-<label>Education</label>
-                    <div class="list-editor" id="education-editor"></div>
-                    <button class="secondary-btn" id="add-education-btn">+ Lägg till utbildning</button>
-                </div>
-
-                <div class="form-group">
-<label>Skills</label>
-                    <div class="list-editor" id="skills-editor"></div>
-                    <button class="secondary-btn" id="add-skill-btn">+ Lägg till färdighet</button>
-                </div>
-
-                <div class="form-group">
-<label>Tools</label>
-                    <div class="list-editor" id="tools-editor"></div>
-                    <button class="secondary-btn" id="add-tool-btn">+ Lägg till verktyg</button>
-                </div>
-
-                <div class="form-group">
-<label>Certificates</label>
-                    <div class="list-editor" id="certs-editor"></div>
-                    <button class="secondary-btn" id="add-cert-btn">+ Lägg till certifikat</button>
-                </div>
-
-                <div class="form-group">
-<label>Pages</label>
-                    <button class="secondary-btn" id="toggle-page2-btn">Lägg till sida 2</button>
-                </div>
-
-                <p class="editor-hint">
-                    Tips: Alla ändringar uppdateras direkt i förhandsvisningen. Exporterar du PDF används ditt namn för filnamnet.
-                </p>
-            </div>
-
-            <div class="form-group">
-                <label>Box-specifik design (markera box)</label>
-                <div class="field-row">
-                    <div class="color-field">
-                        <label class="mini-label">Box-färg</label>
-                        <input type="color" id="box-background-color" value="#f6f7fb">
-                    </div>
-                    <div class="color-field">
-                        <label class="mini-label">Box-ram</label>
-                        <input type="color" id="box-border-color" value="#0a0a0a">
-
-                    </div>
-                    <button class="secondary-btn" id="clear-box-style-btn">Rensa box-stil</button>
+        <div class="topbar-menus">
+            <div class="topbar-menu-item" id="menu-arkiv">
+                <span class="menu-label">Arkiv</span>
+                <div class="topbar-dropdown">
+                    <button class="dropdown-item" id="save-project-btn">Spara projekt <kbd>⌘S</kbd></button>
+                    <button class="dropdown-item" id="load-project-btn">Ladda projekt <kbd>⌘O</kbd></button>
+                    <div class="dropdown-sep"></div>
+                    <button class="dropdown-item" id="export-pdf-btn">Exportera PDF <kbd>⌘P</kbd></button>
+                    <button class="dropdown-item" id="export-png-btn">Exportera PNG</button>
                 </div>
             </div>
-            <footer class="editor-footer">
-                <!-- Buttons moved to right-side control box -->
-            </footer>
+        </div>
+
+        <div class="topbar-template-strip">
+            <div class="template-strip-scroll" id="template-grid">
+                <button class="tmpl-card is-active" data-template="template-minimal">
+                    <span class="tmpl-prev minimal"></span>
+                    <span class="tmpl-name">Minimal</span>
+                </button>
+                <button class="tmpl-card" data-template="template-dynamic">
+                    <span class="tmpl-prev dynamic"></span>
+                    <span class="tmpl-name">Dynamic</span>
+                </button>
+                <button class="tmpl-card" data-template="template-story">
+                    <span class="tmpl-prev story"></span>
+                    <span class="tmpl-name">Story</span>
+                </button>
+                <button class="tmpl-card" data-template="template-noir">
+                    <span class="tmpl-prev noir"></span>
+                    <span class="tmpl-name">Noir</span>
+                </button>
+                <button class="tmpl-card" data-template="template-geo">
+                    <span class="tmpl-prev geo"></span>
+                    <span class="tmpl-name">Geo</span>
+                </button>
+                <button class="tmpl-card" data-template="template-editorial">
+                    <span class="tmpl-prev editorial"></span>
+                    <span class="tmpl-name">Editorial</span>
+                </button>
+                <button class="tmpl-card" data-template="template-neon">
+                    <span class="tmpl-prev neon"></span>
+                    <span class="tmpl-name">Neon</span>
+                </button>
+                <button class="tmpl-card" data-template="template-retro">
+                    <span class="tmpl-prev retro"></span>
+                    <span class="tmpl-name">Retro</span>
+                </button>
+                <button class="tmpl-card" data-template="template-corporate">
+                    <span class="tmpl-prev corporate"></span>
+                    <span class="tmpl-name">Corporate</span>
+                </button>
+                <button class="tmpl-card" data-template="template-agency">
+                    <span class="tmpl-prev agency"></span>
+                    <span class="tmpl-name">Agency</span>
+                </button>
+                <button class="tmpl-card" data-template="template-analog">
+                    <span class="tmpl-prev analog"></span>
+                    <span class="tmpl-name">Analog</span>
+                </button>
+                <button class="tmpl-card" data-template="template-magazine">
+                    <span class="tmpl-prev magazine"></span>
+                    <span class="tmpl-name">Magazine</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="topbar-right">
+            <select id="format-select" class="topbar-select" title="Format">
+                <option value="a4">A4</option>
+                <option value="a3">A3</option>
+            </select>
+            <select id="layout-select" class="topbar-select" title="Layout">
+                <option value="layout-two">2-spalt</option>
+                <option value="layout-one">1-spalt</option>
+            </select>
+            <div class="topbar-zoom-group">
+                <button id="zoom-out" class="zoom-ctrl-btn" title="Zooma ut">−</button>
+                <span id="zoom-level" class="zoom-level-lbl">70%</span>
+                <button id="zoom-in" class="zoom-ctrl-btn" title="Zooma in">+</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══ WORKSPACE ═══ -->
+    <div class="app-workspace">
+
+        <!-- Left tool panel -->
+        <aside class="tool-panel no-print">
+            <div class="tool-group">
+                <button class="tool-btn is-active" id="tool-select" title="Markera / Flytta (V)">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M2 2l5 13 1.8-4.8L14 8.8z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="tool-sep"></div>
+            <div class="tool-group">
+                <button class="tool-btn" id="toggle-page2-btn" title="Lägg till / ta bort sida 2">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="2" width="8" height="10" rx="1"/>
+                        <rect x="6" y="4" width="8" height="10" rx="1"/>
+                        <path d="M9.5 9h3M11 7.5v3"/>
+                    </svg>
+                </button>
+            </div>
         </aside>
 
-        <main class="preview-area">
-<div class="preview-zoom-controls no-print">
-                <button id="zoom-out" title="Zooma ut">-</button>
-                <span id="zoom-level">100%</span>
-                <button id="zoom-in" title="Zooma in">+</button>
-            </div>
-
-            <!-- New right-side control box -->
-            <div class="control-box no-print">
-                <button id="save-project-btn" class="control-btn primary" type="button">Spara projekt</button>
-                <button id="load-project-btn" class="control-btn secondary" type="button">Ladda projekt</button>
-                <button id="export-png-btn" class="control-btn secondary" type="button">Exportera PNG</button>
-                <button id="export-pdf-btn" class="control-btn primary" type="button">Exportera PDF</button>
-            </div>
-
+        <!-- Canvas -->
+        <main class="canvas-area" id="canvas-area">
             <div class="cv-wrapper">
                 <div class="cv-pages" id="cv-pages">
+
                     <div id="cv" class="cv a4 template-minimal layout-two palette-slate font-sora bg-clean section-cards skills-style-bars">
                         <div class="cv-bg-shape"></div>
                         <header class="cv-header">
@@ -311,46 +145,38 @@
                                 <div class="contact-row" id="cv-contact"></div>
                             </div>
                         </header>
-
                         <div class="cv-grid">
                             <main class="cv-main">
                                 <section class="cv-section" id="section-experience">
-<h3 contenteditable="true">Experience</h3>
+                                    <h3 contenteditable="true">Experience</h3>
                                     <div id="cv-experience-list"></div>
                                 </section>
-
                                 <section class="cv-section" id="section-projects">
-<h3 contenteditable="true">Projects & Portfolio</h3>
+                                    <h3 contenteditable="true">Projects &amp; Portfolio</h3>
                                     <div id="cv-project-list"></div>
                                 </section>
-
                                 <section class="cv-section" id="section-education">
-<h3 contenteditable="true">Education</h3>
+                                    <h3 contenteditable="true">Education</h3>
                                     <div id="cv-education-list"></div>
                                 </section>
                             </main>
-
                             <aside class="cv-side">
                                 <section class="cv-section" id="section-skills">
-<h3 contenteditable="true">Skills</h3>
+                                    <h3 contenteditable="true">Skills</h3>
                                     <div id="cv-skills-list"></div>
                                 </section>
-
                                 <section class="cv-section" id="section-tools">
-<h3 contenteditable="true">Tools</h3>
+                                    <h3 contenteditable="true">Tools</h3>
                                     <div id="cv-tools-list" class="tool-grid"></div>
                                 </section>
-
                                 <section class="cv-section" id="section-certs">
-<h3 contenteditable="true">Certificates</h3>
+                                    <h3 contenteditable="true">Certificates</h3>
                                     <div id="cv-certs-list"></div>
                                 </section>
-
                                 <section class="cv-section" id="section-socials">
                                     <h3 contenteditable="true">Online</h3>
                                     <div id="cv-socials-list" class="social-grid"></div>
                                 </section>
-
                                 <section class="cv-section" id="section-qr">
                                     <h3 contenteditable="true">Portfolio QR</h3>
                                     <div class="qr-card">
@@ -370,44 +196,372 @@
                                 <p class="page-subtitle editable" contenteditable="true">Fyll sida 2 med case studies, frilansuppdrag och extra meriter.</p>
                             </div>
                         </header>
-
                         <div class="cv-grid">
                             <main class="cv-main">
                                 <section class="cv-section">
                                     <h3 contenteditable="true">Fortsatta projekt</h3>
-                                    <div class="editable-block" contenteditable="true">Beskriv fler projekt, reels och highlights. Du kan skriva fritt eller strukturera med punktlistor.</div>
+                                    <div class="editable-block" contenteditable="true">Beskriv fler projekt, reels och highlights.</div>
                                 </section>
-
                                 <section class="cv-section">
                                     <h3 contenteditable="true">Frilans / Personliga projekt</h3>
-                                    <div class="editable-block" contenteditable="true">Beskriv personliga produktioner, samarbeten, kreativa koncept eller nya format.</div>
+                                    <div class="editable-block" contenteditable="true">Beskriv personliga produktioner, samarbeten och kreativa koncept.</div>
                                 </section>
                             </main>
-
                             <aside class="cv-side">
                                 <section class="cv-section">
                                     <h3 contenteditable="true">Utmärkelser</h3>
                                     <div class="editable-block" contenteditable="true">Lista priser, utmärkelser eller festivalurval.</div>
                                 </section>
-
                                 <section class="cv-section">
                                     <h3 contenteditable="true">Extra kompetenser</h3>
-                                    <div class="editable-block" contenteditable="true">Lägg till extra skills, språk eller verktyg som inte fick plats på sida 1.</div>
+                                    <div class="editable-block" contenteditable="true">Lägg till extra skills, språk eller verktyg.</div>
                                 </section>
-
                                 <section class="cv-section">
                                     <h3 contenteditable="true">Referenser</h3>
-                                    <div class="editable-block" contenteditable="true">Skriv referenser, kontaktpersoner eller “anges vid förfrågan”.</div>
+                                    <div class="editable-block" contenteditable="true">Skriv referenser, kontaktpersoner eller "anges vid förfrågan".</div>
                                 </section>
                             </aside>
                         </div>
                     </div>
-                </div>
+
+                </div><!-- /cv-pages -->
+            </div><!-- /cv-wrapper -->
+        </main><!-- /canvas-area -->
+
+        <!-- ═══ RIGHT PANELS DOCK ═══ -->
+        <aside class="panels-dock no-print" id="panels-dock">
+            <div class="panel-tabs-bar">
+                <button class="panel-tab-btn is-active" data-panel="properties" title="Egenskaper för valt element">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M7 2h2v2h3l1 1v2l-1 1H9v6H7V8H4L3 7V5l1-1h3V2z"/></svg>
+                    Egenskaper
+                </button>
+                <button class="panel-tab-btn" data-panel="design" title="Design & stilar">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="3" r="1.5"/><circle cx="13" cy="10.5" r="1.5"/><circle cx="3" cy="10.5" r="1.5"/></svg>
+                    Design
+                </button>
+                <button class="panel-tab-btn" data-panel="content" title="Redigera innehåll">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.5" rx=".75"/><rect x="2" y="7" width="9" height="1.5" rx=".75"/><rect x="2" y="11" width="11" height="1.5" rx=".75"/></svg>
+                    Innehåll
+                </button>
             </div>
-        </main>
-    </div>
 
-    <script src="app.js"></script>
+            <div class="panel-body">
+
+                <!-- PROPERTIES PANEL -->
+                <div class="panel-pane is-active" id="panel-properties">
+                    <div class="panel-no-sel" id="panel-no-selection">
+                        <div class="no-sel-icon">
+                            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".4">
+                                <path d="M6 6l8 18 2.5-7L24 14.5z"/>
+                            </svg>
+                        </div>
+                        <p>Klicka på ett element i canvas</p>
+                        <p class="no-sel-sub">Egenskaper visas direkt här</p>
+                    </div>
+                    <div id="context-editor" style="display:none"></div>
+                    <div class="panel-section" id="box-style-section" style="display:none">
+                        <div class="panel-section-head">
+                            <span>Box-stil</span>
+                            <button class="head-action-btn" id="clear-box-style-btn">Rensa</button>
+                        </div>
+                        <div class="color-pickers-grid">
+                            <div class="color-field">
+                                <label class="mini-label">Bakgrund</label>
+                                <input type="color" id="box-background-color" value="#f6f7fb">
+                            </div>
+                            <div class="color-field">
+                                <label class="mini-label">Ramfärg</label>
+                                <input type="color" id="box-border-color" value="#0a0a0a">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DESIGN PANEL -->
+                <div class="panel-pane" id="panel-design" style="display:none">
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">Palett</div>
+                        <div class="palette-swatch-row">
+                            <button class="pal-swatch is-active" data-palette="palette-slate" title="Broadcast Slate">
+                                <span class="sw" style="background:#ff6b3d"></span>
+                                <span class="sw" style="background:#2e7cff"></span>
+                                <span class="sw" style="background:#f4f5fb"></span>
+                                <span class="sw-name">Slate</span>
+                            </button>
+                            <button class="pal-swatch" data-palette="palette-sand" title="Warm Sand">
+                                <span class="sw" style="background:#ff8c42"></span>
+                                <span class="sw" style="background:#ffb562"></span>
+                                <span class="sw" style="background:#f9f1e7"></span>
+                                <span class="sw-name">Sand</span>
+                            </button>
+                            <button class="pal-swatch" data-palette="palette-studio" title="Studio Blue">
+                                <span class="sw" style="background:#3b82f6"></span>
+                                <span class="sw" style="background:#22d3ee"></span>
+                                <span class="sw" style="background:#eef4ff"></span>
+                                <span class="sw-name">Studio</span>
+                            </button>
+                            <button class="pal-swatch" data-palette="palette-midnight" title="Midnight Neon">
+                                <span class="sw" style="background:#00f5d4"></span>
+                                <span class="sw" style="background:#7c3aed"></span>
+                                <span class="sw" style="background:#ececff"></span>
+                                <span class="sw-name">Neon</span>
+                            </button>
+                            <button class="pal-swatch" data-palette="palette-ember" title="Ember">
+                                <span class="sw" style="background:#ff3d00"></span>
+                                <span class="sw" style="background:#ff8a00"></span>
+                                <span class="sw" style="background:#fff8f5"></span>
+                                <span class="sw-name">Ember</span>
+                            </button>
+                            <button class="pal-swatch" data-palette="palette-forest" title="Forest">
+                                <span class="sw" style="background:#22c55e"></span>
+                                <span class="sw" style="background:#0ea5e9"></span>
+                                <span class="sw" style="background:#f0fdf4"></span>
+                                <span class="sw-name">Forest</span>
+                            </button>
+                            <button class="pal-swatch" data-palette="palette-rose" title="Rose">
+                                <span class="sw" style="background:#f43f5e"></span>
+                                <span class="sw" style="background:#ec4899"></span>
+                                <span class="sw" style="background:#fff1f2"></span>
+                                <span class="sw-name">Rose</span>
+                            </button>
+                            <button class="pal-swatch" data-palette="palette-mono" title="Mono">
+                                <span class="sw" style="background:#111827"></span>
+                                <span class="sw" style="background:#374151"></span>
+                                <span class="sw" style="background:#f9fafb"></span>
+                                <span class="sw-name">Mono</span>
+                            </button>
+                        </div>
+                        <select id="palette-select" class="visually-hidden" aria-label="Palett">
+                            <option value="palette-slate">Broadcast Slate</option>
+                            <option value="palette-sand">Warm Sand</option>
+                            <option value="palette-studio">Studio Blue</option>
+                            <option value="palette-midnight">Midnight Neon</option>
+                            <option value="palette-ember">Ember</option>
+                            <option value="palette-forest">Forest</option>
+                            <option value="palette-rose">Rose</option>
+                            <option value="palette-mono">Mono</option>
+                        </select>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">
+                            <span>Anpassade färger</span>
+                            <button class="head-action-btn" id="reset-colors-btn">Återställ</button>
+                        </div>
+                        <div class="color-pickers-grid">
+                            <div class="color-field">
+                                <label class="mini-label">Primär</label>
+                                <input type="color" id="cv-primary-color" value="#ff6b3d">
+                            </div>
+                            <div class="color-field">
+                                <label class="mini-label">Sekundär</label>
+                                <input type="color" id="cv-secondary-color" value="#2e7cff">
+                            </div>
+                            <div class="color-field">
+                                <label class="mini-label">Bakgrund</label>
+                                <input type="color" id="cv-bg-color" value="#ffffff">
+                            </div>
+                            <div class="color-field">
+                                <label class="mini-label">Yta</label>
+                                <input type="color" id="cv-surface-color" value="#f6f7fb">
+                            </div>
+                            <div class="color-field">
+                                <label class="mini-label">Text</label>
+                                <input type="color" id="cv-text-color" value="#0f1116">
+                            </div>
+                            <div class="color-field">
+                                <label class="mini-label">Muted</label>
+                                <input type="color" id="cv-muted-color" value="#4b5565">
+                            </div>
+                            <div class="color-field">
+                                <label class="mini-label">Accent</label>
+                                <input type="color" id="accent-color" value="#ff6b3d">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">Typografi &amp; Bakgrund</div>
+                        <label class="mini-label">Font</label>
+                        <select id="font-select">
+                            <option value="font-sora">Sora + IBM Plex</option>
+                            <option value="font-grotesk">Space Grotesk</option>
+                            <option value="font-plex">IBM Plex</option>
+                        </select>
+                        <label class="mini-label" style="margin-top:8px">Bakgrund</label>
+                        <select id="background-select">
+                            <option value="bg-clean">Clean</option>
+                            <option value="bg-gradient">Gradient</option>
+                            <option value="bg-studio">Studio Grid</option>
+                            <option value="bg-story">Story Aura</option>
+                            <option value="bg-dark-noir">Dark Noir</option>
+                            <option value="bg-dark-slate">Dark Slate</option>
+                            <option value="bg-dark-prism">Dark Prism</option>
+                            <option value="bg-dark-studio">Dark Studio</option>
+                        </select>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">Sektioner &amp; Skills</div>
+                        <div class="field-row">
+                            <div>
+                                <label class="mini-label">Sektionsstil</label>
+                                <select id="section-style-select">
+                                    <option value="section-cards">Kort</option>
+                                    <option value="section-lines">Linjer</option>
+                                    <option value="section-glass">Glass</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mini-label">Skill-stil</label>
+                                <select id="skill-style-select">
+                                    <option value="skills-style-bars">Staplar</option>
+                                    <option value="skills-style-dots">Prickar</option>
+                                    <option value="skills-style-stars">Stjärnor</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /panel-design -->
+
+                <!-- CONTENT PANEL -->
+                <div class="panel-pane" id="panel-content" style="display:none">
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">Profil</div>
+                        <input type="text" id="name-input" placeholder="Namn">
+                        <input type="text" id="title-input" placeholder="Titel">
+                        <div class="field-row">
+                            <input type="text" id="email-input" placeholder="E-post">
+                            <input type="text" id="phone-input" placeholder="Telefon">
+                        </div>
+                        <div class="field-row">
+                            <input type="text" id="location-input" placeholder="Plats">
+                            <input type="text" id="website-input" placeholder="Webb">
+                        </div>
+                        <textarea id="tagline-input" placeholder="Tagline / pitch"></textarea>
+                        <div class="field-row">
+                            <input type="text" id="portfolio-input" placeholder="Portfolio URL">
+                            <button class="panel-mini-btn" id="generate-qr-btn" type="button">QR</button>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">Profilbild</div>
+                        <div class="file-drop" id="profile-drop">
+                            <input type="file" id="profile-image-input" accept="image/*">
+                            <div class="file-drop-inner">
+                                <span>Dra &amp; släpp eller klicka</span>
+                                <button class="panel-mini-btn" id="remove-profile-btn" type="button">Ta bort</button>
+                            </div>
+                        </div>
+                        <div class="field-row" style="margin-top:8px; align-items:flex-end">
+                            <div>
+                                <label class="mini-label">Bildform</label>
+                                <select id="profile-shape-select">
+                                    <option value="rounded">Rundad</option>
+                                    <option value="square">Fyrkant</option>
+                                    <option value="circle">Cirkel</option>
+                                    <option value="rect">Rektangel</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mini-label">Bredd</label>
+                                <input type="number" id="profile-width-input" min="80" max="300" value="120">
+                            </div>
+                            <div>
+                                <label class="mini-label">Höjd</label>
+                                <input type="number" id="profile-height-input" min="80" max="300" value="120">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">Social</div>
+                        <div class="field-row">
+                            <input type="text" id="linkedin-input" placeholder="LinkedIn">
+                            <input type="text" id="behance-input" placeholder="Behance">
+                        </div>
+                        <div class="field-row">
+                            <input type="text" id="instagram-input" placeholder="Instagram">
+                            <input type="text" id="tiktok-input" placeholder="TikTok">
+                        </div>
+                        <div class="field-row">
+                            <input type="text" id="youtube-input" placeholder="YouTube">
+                            <input type="text" id="vimeo-input" placeholder="Vimeo">
+                        </div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">
+                            <span>Experience</span>
+                            <button class="head-action-btn" id="add-experience-btn">+ Lägg till</button>
+                        </div>
+                        <div class="list-editor" id="experience-editor"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">
+                            <span>Projects</span>
+                            <button class="head-action-btn" id="add-project-btn">+ Lägg till</button>
+                        </div>
+                        <div class="list-editor" id="project-editor"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">
+                            <span>Education</span>
+                            <button class="head-action-btn" id="add-education-btn">+ Lägg till</button>
+                        </div>
+                        <div class="list-editor" id="education-editor"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">
+                            <span>Skills</span>
+                            <button class="head-action-btn" id="add-skill-btn">+ Lägg till</button>
+                        </div>
+                        <div class="list-editor" id="skills-editor"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">
+                            <span>Tools</span>
+                            <button class="head-action-btn" id="add-tool-btn">+ Lägg till</button>
+                        </div>
+                        <div class="list-editor" id="tools-editor"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <div class="panel-section-head">
+                            <span>Certificates</span>
+                            <button class="head-action-btn" id="add-cert-btn">+ Lägg till</button>
+                        </div>
+                        <div class="list-editor" id="certs-editor"></div>
+                    </div>
+
+                    <div class="panel-section">
+                        <p class="panel-hint">Alla ändringar uppdateras direkt i canvas. Klicka på ett element för snabb redigering.</p>
+                    </div>
+
+                </div><!-- /panel-content -->
+
+            </div><!-- /panel-body -->
+        </aside><!-- /panels-dock -->
+
+    </div><!-- /app-workspace -->
+
+    <!-- STATUS BAR -->
+    <footer class="app-statusbar no-print">
+        <span id="status-selection-info" class="status-item">Inget element valt — klicka i canvas</span>
+        <span class="status-divider">|</span>
+        <span id="status-zoom-info" class="status-item">Zoom: 70%</span>
+    </footer>
+
+</div><!-- /app-container -->
+
+<script src="app.js"></script>
 </body>
-
 </html>
