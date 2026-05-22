@@ -148,37 +148,37 @@
                         <div class="cv-grid">
                             <main class="cv-main">
                                 <section class="cv-section" id="section-experience">
-                                    <h3 contenteditable="true">Experience</h3>
+                                    <h3 id="heading-experience" contenteditable="true">Experience</h3>
                                     <div id="cv-experience-list"></div>
                                 </section>
                                 <section class="cv-section" id="section-projects">
-                                    <h3 contenteditable="true">Projects &amp; Portfolio</h3>
+                                    <h3 id="heading-projects" contenteditable="true">Projects &amp; Portfolio</h3>
                                     <div id="cv-project-list"></div>
                                 </section>
                                 <section class="cv-section" id="section-education">
-                                    <h3 contenteditable="true">Education</h3>
+                                    <h3 id="heading-education" contenteditable="true">Education</h3>
                                     <div id="cv-education-list"></div>
                                 </section>
                             </main>
                             <aside class="cv-side">
                                 <section class="cv-section" id="section-skills">
-                                    <h3 contenteditable="true">Skills</h3>
+                                    <h3 id="heading-skills" contenteditable="true">Skills</h3>
                                     <div id="cv-skills-list"></div>
                                 </section>
                                 <section class="cv-section" id="section-tools">
-                                    <h3 contenteditable="true">Tools</h3>
+                                    <h3 id="heading-tools" contenteditable="true">Tools</h3>
                                     <div id="cv-tools-list" class="tool-grid"></div>
                                 </section>
                                 <section class="cv-section" id="section-certs">
-                                    <h3 contenteditable="true">Certificates</h3>
+                                    <h3 id="heading-certs" contenteditable="true">Certificates</h3>
                                     <div id="cv-certs-list"></div>
                                 </section>
                                 <section class="cv-section" id="section-socials">
-                                    <h3 contenteditable="true">Online</h3>
+                                    <h3 id="heading-socials" contenteditable="true">Online</h3>
                                     <div id="cv-socials-list" class="social-grid"></div>
                                 </section>
                                 <section class="cv-section" id="section-qr">
-                                    <h3 contenteditable="true">Portfolio QR</h3>
+                                    <h3 id="heading-qr" contenteditable="true">Portfolio QR</h3>
                                     <div class="qr-card">
                                         <img id="cv-qr-img" alt="QR-kod">
                                         <p id="cv-qr-label" class="editable" contenteditable="true" data-section="profile" data-field="portfolio" data-placeholder="Länk till portfolio">Länk till portfolio</p>
@@ -445,6 +445,11 @@
                         <div class="field-row">
                             <input type="text" id="portfolio-input" placeholder="Portfolio URL">
                             <button class="panel-mini-btn" id="generate-qr-btn" type="button">QR</button>
+                        </div>
+                        <div class="field-row" style="align-items:center;gap:8px">
+                            <label class="mini-label" style="white-space:nowrap">QR-storlek</label>
+                            <input type="range" id="qr-size-input" min="40" max="300" step="8" value="80" style="flex:1">
+                            <span id="qr-size-lbl" style="min-width:38px;font-size:0.75rem;color:var(--ui-muted,#888);text-align:right">80px</span>
                         </div>
                     </div>
 

@@ -337,7 +337,7 @@ body {
 /* WORKSPACE */
 .app-workspace {
     display: grid;
-    grid-template-columns: 44px 1fr 300px;
+    grid-template-columns: 44px minmax(0, 1fr) 380px;
     overflow: hidden;
 }
 
@@ -410,6 +410,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 360px;
 }
 
 .panel-tabs-bar {
@@ -467,7 +468,7 @@ body {
     background: #0f1320;
     border: 1px solid var(--ui-border);
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .panel-section-head {
@@ -481,7 +482,12 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     background: rgba(0,0,0,0.15);
+}
+
+#panel-content .panel-section-head {
+    flex-wrap: wrap;
 }
 
 .panel-section > *:not(.panel-section-head) {
@@ -736,6 +742,8 @@ input[type="range"].ctx-input {
 
 /* Panel inputs */
 .panel-section input[type="text"],
+.panel-section input[type="number"],
+.panel-section input[type="range"],
 .panel-section select,
 .panel-section textarea {
     background: rgba(0,0,0,0.25);
@@ -746,10 +754,13 @@ input[type="range"].ctx-input {
     font-size: 0.83rem;
     font-family: inherit;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     transition: border-color 0.15s;
 }
 
 .panel-section input[type="text"]:focus,
+.panel-section input[type="number"]:focus,
 .panel-section select:focus,
 .panel-section textarea:focus {
     outline: none;
@@ -757,15 +768,75 @@ input[type="range"].ctx-input {
     box-shadow: 0 0 0 2px rgba(255,107,61,0.12);
 }
 
+.panel-section input[type="range"] {
+    padding: 0;
+    border: none;
+    background: transparent;
+    accent-color: var(--ui-accent);
+}
+
 .panel-section textarea {
     resize: vertical;
     min-height: 70px;
+    overflow: hidden;
 }
 
 .panel-section .field-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 8px;
+    align-items: start;
+}
+
+#panel-content .field-row,
+#panel-content .list-row {
+    grid-template-columns: 1fr;
+}
+
+#panel-content input[type="text"],
+#panel-content input[type="number"],
+#panel-content select {
+    min-height: 38px;
+    line-height: 1.25;
+}
+
+#panel-content textarea {
+    min-height: 96px;
+    line-height: 1.35;
+}
+
+#panel-content .field-row > *,
+#panel-content .list-row > *,
+#panel-content .list-card > * {
+    min-width: 0;
+}
+
+#panel-content .field-row:has(#portfolio-input) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+}
+
+#panel-content .field-row:has(#qr-size-input) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+#panel-content .field-row:has(#qr-size-input) .mini-label {
+    grid-column: 1 / -1;
+    white-space: normal !important;
+}
+
+#panel-content .field-row:has(#profile-shape-select) {
+    grid-template-columns: 1fr;
+}
+
+#panel-content .panel-section .list-card {
+    gap: 8px;
+    padding: 12px;
+}
+
+#panel-content .list-editor {
+    gap: 12px;
 }
 
 .panel-section .mini-label {
@@ -793,6 +864,7 @@ input[type="range"].ctx-input {
     white-space: nowrap;
     transition: all 0.15s;
     align-self: flex-end;
+    min-width: max-content;
 }
 
 .panel-mini-btn:hover { background: rgba(255,255,255,0.14); }
@@ -955,9 +1027,15 @@ input[type="color"] {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 10px;
     font-size: 0.78rem;
     color: var(--ui-muted);
+}
+
+.file-drop-inner > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .list-editor {
@@ -1288,8 +1366,14 @@ input[type="color"] {
 .cv-pages {
     display: flex;
     flex-direction: column;
-    gap: 40px;
+    gap: 0;
     align-items: center;
+    position: relative;
+    --page-gap: 40px;
+}
+
+.cv-pages.has-page-2 > .cv:first-of-type:not(.is-hidden) {
+    margin-bottom: var(--page-gap);
 }
 
 .cv {
@@ -1357,6 +1441,64 @@ input[type="color"] {
     display: none;
 }
 
+.cv-free-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.cv-free-layer > .draggable-box {
+    position: absolute;
+    left: var(--box-left, 0px);
+    top: var(--box-top, 0px);
+    pointer-events: auto;
+}
+
+.page-breaker-line {
+    position: absolute;
+    left: 50%;
+    width: min(760px, 100%);
+    height: 22px;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    cursor: ns-resize;
+    z-index: 30;
+}
+
+.page-breaker-line span {
+    width: 100%;
+    height: 2px;
+    border-top: 1px dashed rgba(255, 107, 61, 0.85);
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.28);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.page-breaker-line::after {
+    content: 'Sidbrytning';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: #0f1320;
+    border: 1px solid rgba(255, 107, 61, 0.45);
+    border-radius: 999px;
+    color: var(--ui-text);
+    font-size: 0.68rem;
+    line-height: 1;
+    padding: 4px 9px;
+    pointer-events: none;
+}
+
+.page-breaker-line.dragging::after {
+    color: var(--ui-accent);
+}
+
+.page-breaker-line.is-hidden {
+    display: none;
+}
+
 .cv-header {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -1379,6 +1521,7 @@ input[type="color"] {
 .page-subtitle {
     color: var(--cv-muted);
     font-size: 0.9rem;
+    white-space: pre-wrap;
 }
 
 .profile-photo {
@@ -1477,6 +1620,7 @@ input[type="color"] {
     margin-top: 8px;
     color: var(--cv-muted);
     font-size: 0.95rem;
+    white-space: pre-wrap;
 }
 
 .contact-row {
@@ -1513,6 +1657,8 @@ a.contact-item {
     transform-origin: top left;
     transition: box-shadow 0.1s ease;
     cursor: move;
+    min-width: 24px;
+    min-height: 18px;
 }
 
 .draggable-box.active {
@@ -1530,7 +1676,7 @@ a.contact-item {
     background: var(--cv-accent);
     border: 2px solid #fff;
     border-radius: 4px;
-    cursor: nwse-resize;
+    cursor: se-resize;
     display: none;
     z-index: 3;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
@@ -1538,6 +1684,82 @@ a.contact-item {
 
 .draggable-box.active .box-resize-handle {
     display: block;
+}
+
+.box-delete-btn {
+    position: absolute;
+    right: -11px;
+    top: -11px;
+    width: 20px;
+    height: 20px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    cursor: pointer;
+    font: 700 14px/1 var(--cv-font-body);
+    z-index: 4;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.draggable-box.active .box-delete-btn {
+    display: flex;
+}
+
+.box-delete-btn:hover {
+    background: #dc2626;
+}
+
+/* Drag grip for boxes whose root element is contenteditable (h3, social-link, editable-block, title-pill) */
+.box-drag-handle {
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    z-index: 3;
+    border-radius: 3px;
+    color: var(--cv-accent);
+    user-select: none;
+    pointer-events: all;
+}
+
+/* For inline/inline-flex host elements (social-link, title-pill) that may clip
+   overflow, move the grip inside the right side */
+.social-link > .box-drag-handle,
+.title-pill > .box-drag-handle {
+    left: auto;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 3px;
+    width: 12px;
+    height: 12px;
+}
+
+.box-drag-handle::before {
+    content: '⠿';
+    font-size: 13px;
+    line-height: 1;
+    opacity: 0.8;
+}
+
+.draggable-box.active .box-drag-handle {
+    display: flex;
+}
+
+.box-drag-handle:hover {
+    opacity: 1;
+    background: rgba(var(--cv-accent-rgb, 255, 107, 61), 0.12);
 }
 
 .draggable-box.dragging {
@@ -1568,6 +1790,7 @@ a.contact-item {
     background: var(--cv-surface);
     color: var(--cv-muted);
     line-height: 1.5;
+    white-space: pre-wrap;
 }
 
 .editable-block:focus {
@@ -1650,6 +1873,7 @@ a.contact-item {
     color: var(--cv-muted);
     font-size: 0.85rem;
     line-height: 1.4;
+    white-space: pre-wrap;
 }
 
 .project-card {
@@ -1826,9 +2050,11 @@ a.contact-item {
 }
 
 .qr-card img {
-    width: 120px;
-    height: 120px;
+    width: var(--qr-size, 80px);
+    height: var(--qr-size, 80px);
     object-fit: contain;
+    display: block;
+    image-rendering: auto;
 }
 
 #cv-qr-label {
@@ -2254,6 +2480,17 @@ a.contact-item {
         display: none !important;
     }
 
+    .box-resize-handle,
+    .box-drag-handle,
+    .box-delete-btn,
+    .page-breaker-line {
+        display: none !important;
+    }
+
+    .cv-pages > .cv {
+        margin-bottom: 0 !important;
+    }
+
     .app-container {
         display: block;
     }
@@ -2268,8 +2505,6 @@ a.contact-item {
 
     .cv {
         box-shadow: none;
-        width: 100vw !important;
-        height: 100vh !important;
         animation: none !important;
         page-break-after: always;
     }

@@ -36,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const taglineInput = document.getElementById('tagline-input');
     const portfolioInput = document.getElementById('portfolio-input');
     const generateQrBtn = document.getElementById('generate-qr-btn');
+    const qrSizeInput = document.getElementById('qr-size-input');
+    const qrSizeLbl = document.getElementById('qr-size-lbl');
 
     const linkedinInput = document.getElementById('linkedin-input');
     const behanceInput = document.getElementById('behance-input');
@@ -106,7 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomLevelEl = document.getElementById('zoom-level');
     let currentZoom = 0.7;
     const ZOOM_STEP = 0.05;
-    const PAGE_GAP = 40;
+    let pageGap = 40;
+    const MIN_PAGE_GAP = 16;
+    const MAX_PAGE_GAP = 220;
     const GRID_SIZE = 8;
 
     let activeBox = null;
@@ -116,8 +120,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let dragStartY = 0;
     let boxStartX = 0;
     let boxStartY = 0;
-    let boxStartScale = 1;
+    let boxStartWidth = 0;
+    let boxStartHeight = 0;
+    let isDraggingBreaker = false;
+    let breakerStartY = 0;
+    let breakerStartGap = 40;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
     let refreshQueued = false;
+    let deletedBoxIds = new Set();
 
     const state = {
         profile: {
@@ -201,7 +212,18 @@ document.addEventListener('DOMContentLoaded', () => {
         profileImage: '',
         profileShape: 'rounded',
         profileSize: { width: 120, height: 120 },
-        qrDataUrl: ''
+        qrDataUrl: '',
+        qrSize: 80,
+        sectionHeadings: {
+            'heading-experience': 'Experience',
+            'heading-projects': 'Projects & Portfolio',
+            'heading-education': 'Education',
+            'heading-skills': 'Skills',
+            'heading-tools': 'Tools',
+            'heading-certs': 'Certificates',
+            'heading-socials': 'Online',
+            'heading-qr': 'Portfolio QR'
+        }
     };
 
     const templateDefaults = {
@@ -371,6 +393,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (input) input.value = value || '';
     }
 
+    function getEditableText(element) {
+        if (!element) return '';
+        const skipSelector = '.box-resize-handle, .box-delete-btn, .box-drag-handle';
+        const blockTags = new Set(['DIV', 'P', 'LI', 'SECTION', 'ARTICLE']);
+
+        function readNode(node) {
+            if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+            if (node.nodeType !== Node.ELEMENT_NODE) return '';
+            if (node.matches(skipSelector)) return '';
+            if (node.tagName === 'BR') return '\n';
+
+            const text = Array.from(node.childNodes).map(readNode).join('');
+            return blockTags.has(node.tagName) && node !== element ? `${text}\n` : text;
+        }
+
+        return readNode(element)
+            .replace(/\u00a0/g, ' ')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
     function updateContact() {
         const items = [];
         if (state.profile.email) {
@@ -423,17 +466,82 @@ document.addEventListener('DOMContentLoaded', () => {
         section.classList.toggle('empty', !list || list.length === 0);
     }
 
+    function ensureFreeLayers() {
+        cvPages.querySelectorAll('.cv').forEach((page) => {
+            if (page.querySelector(':scope > .cv-free-layer')) return;
+            const layer = document.createElement('div');
+            layer.className = 'cv-free-layer';
+            page.appendChild(layer);
+        });
+    }
+
+    function ensurePageBreaker() {
+        if (!cvPages.querySelector(':scope > .page-breaker-line')) {
+            const breaker = document.createElement('div');
+            breaker.className = 'page-breaker-line no-print';
+            breaker.setAttribute('role', 'separator');
+            breaker.setAttribute('aria-label', 'Flyttbar sidbrytare');
+            breaker.innerHTML = '<span></span>';
+            cvPages.appendChild(breaker);
+        }
+        updatePageBreaker();
+    }
+
+    function updatePageBreaker() {
+        cvPages.style.setProperty('--page-gap', `${pageGap}px`);
+        const breaker = cvPages.querySelector(':scope > .page-breaker-line');
+        if (!breaker || !cv || !page2) return;
+        const page2Visible = !page2.classList.contains('is-hidden');
+        cvPages.classList.toggle('has-page-2', page2Visible);
+        breaker.classList.toggle('is-hidden', !page2Visible);
+        if (!page2Visible) return;
+        breaker.style.top = `${cv.offsetTop + cv.offsetHeight + (pageGap / 2)}px`;
+    }
+
     function scheduleBoxRefresh() {
         if (refreshQueued) return;
         refreshQueued = true;
         requestAnimationFrame(() => {
             refreshQueued = false;
+            ensureFreeLayers();
             refreshDraggableBoxes();
+            updatePageBreaker();
         });
+    }
+
+    function computeBoxId(box) {
+        // Section h3 elements: use parent section id
+        if (box.tagName === 'H3') {
+            const section = box.closest('.cv-section');
+            if (section && section.id) return `h3-${section.id}`;
+            // page-2 headings without id: use index among all cv-sections
+            const allSections = Array.from(cvPages.querySelectorAll('.cv-section'));
+            const idx = allSections.indexOf(section);
+            return `h3-sidx-${idx}`;
+        }
+        // Elements that carry data-section + data-index on a child
+        const dataChild = box.querySelector('[data-section][data-index]');
+        if (dataChild) return `${dataChild.dataset.section}-${dataChild.dataset.index}`;
+        // Social link has data attrs on itself
+        if (box.dataset.section && box.dataset.field) return `${box.dataset.section}-${box.dataset.field}`;
+        // Unique named elements
+        if (box.id) return box.id;
+        if (box.classList.contains('profile-photo')) return 'profile-photo';
+        if (box.classList.contains('title-pill')) return 'title-pill';
+        if (box.classList.contains('qr-card')) return 'qr-card';
+        // editable-block in page2: use page section index
+        const parentSection = box.closest('.cv-section');
+        if (parentSection) {
+            const allSections = Array.from(cvPages.querySelectorAll('.cv-section'));
+            const sIdx = allSections.indexOf(parentSection);
+            return `block-sidx-${sIdx}`;
+        }
+        return null;
     }
 
     function refreshDraggableBoxes() {
         const selectors = [
+            '.cv-section h3',
             '.entry',
             '.project-card',
             '.skill-item',
@@ -451,12 +559,50 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!box.style.getPropertyValue('--box-x')) box.style.setProperty('--box-x', '0px');
             if (!box.style.getPropertyValue('--box-y')) box.style.setProperty('--box-y', '0px');
             if (!box.style.getPropertyValue('--box-scale')) box.style.setProperty('--box-scale', '1');
-            if (!box.querySelector('.box-resize-handle')) {
+            if (!box.dataset.boxId) {
+                const id = computeBoxId(box);
+                if (id) box.dataset.boxId = id;
+            }
+            if (box.dataset.boxId && deletedBoxIds.has(box.dataset.boxId)) {
+                box.remove();
+                return;
+            }
+            if (!box.querySelector(':scope > .box-resize-handle')) {
                 const handle = document.createElement('div');
                 handle.className = 'box-resize-handle';
                 box.appendChild(handle);
             }
+            if (!box.querySelector(':scope > .box-delete-btn')) {
+                const del = document.createElement('button');
+                del.className = 'box-delete-btn';
+                del.type = 'button';
+                del.title = 'Radera box';
+                del.setAttribute('aria-label', 'Radera box');
+                del.setAttribute('contenteditable', 'false');
+                del.textContent = '×';
+                box.appendChild(del);
+            }
+            // Add a drag grip for any box whose root element is itself contenteditable
+            // (e.g. social-link, editable-block, title-pill, h3)
+            // – without a grip there is no non-editable area to start a drag from.
+            const isSelfEditable = box.getAttribute('contenteditable') === 'true' || box.tagName === 'H3';
+            if (isSelfEditable && !box.querySelector(':scope > .box-drag-handle')) {
+                const grip = document.createElement('div');
+                grip.className = 'box-drag-handle';
+                grip.setAttribute('contenteditable', 'false');
+                grip.setAttribute('aria-hidden', 'true');
+                box.insertBefore(grip, box.firstChild);
+            }
         });
+
+        const freeIds = new Set(Array.from(cvPages.querySelectorAll('.cv-free-layer > .draggable-box[data-box-id]'))
+            .map((box) => box.dataset.boxId));
+        if (freeIds.size) {
+            cvPages.querySelectorAll('.draggable-box[data-box-id]').forEach((box) => {
+                if (!freeIds.has(box.dataset.boxId) || box.closest('.cv-free-layer')) return;
+                box.remove();
+            });
+        }
     }
 
     function renderExperience() {
@@ -639,6 +785,141 @@ document.addEventListener('DOMContentLoaded', () => {
         activeBox = box;
     }
 
+    function rerenderSection(section) {
+        const renders = {
+            experience: renderExperience,
+            projects: renderProjects,
+            education: renderEducation,
+            skills: renderSkills,
+            tools: renderTools,
+            certs: renderCerts,
+            socials: renderSocials
+        };
+        if (renders[section]) renders[section]();
+    }
+
+    function removeStateBackedBox(box) {
+        const dataEl = box.matches('[data-section]') ? box : box.querySelector('[data-section]');
+        if (!dataEl) return false;
+        const section = dataEl.dataset.section;
+        const index = dataEl.dataset.index !== undefined ? Number(dataEl.dataset.index) : null;
+        const field = dataEl.dataset.field;
+        const listMap = {
+            experience: state.experience,
+            projects: state.projects,
+            education: state.education,
+            skills: state.skills,
+            tools: state.tools,
+            certs: state.certs
+        };
+
+        if (listMap[section] && index !== null && !Number.isNaN(index)) {
+            listMap[section].splice(index, 1);
+            renderEditors();
+            rerenderSection(section);
+            return true;
+        }
+
+        if (section === 'socials' && field) {
+            state.socials[field] = '';
+            const inputMap = {
+                linkedin: linkedinInput,
+                behance: behanceInput,
+                instagram: instagramInput,
+                tiktok: tiktokInput,
+                youtube: youtubeInput,
+                vimeo: vimeoInput
+            };
+            if (inputMap[field]) inputMap[field].value = '';
+            renderSocials();
+            return true;
+        }
+
+        if (section === 'profile' && field) {
+            state.profile[field] = '';
+            const inputMap = {
+                name: nameInput,
+                title: titleInput,
+                tagline: taglineInput,
+                email: emailInput,
+                phone: phoneInput,
+                location: locationInput,
+                website: websiteInput,
+                portfolio: portfolioInput
+            };
+            if (inputMap[field]) inputMap[field].value = '';
+            if (['email', 'phone', 'location', 'website'].includes(field)) updateContact();
+            else if (field === 'portfolio') {
+                state.qrDataUrl = '';
+                renderQr();
+            } else updateProfilePreview();
+            return true;
+        }
+
+        return false;
+    }
+
+    function deleteDraggableBox(box) {
+        if (!box) return;
+        const wasMovedBox = box.dataset.freeBox === 'true' || !!box.closest('.cv-free-layer');
+        const wasStateBacked = removeStateBackedBox(box);
+        if (wasStateBacked) {
+            if (wasMovedBox && box.isConnected) box.remove();
+            setActiveBox(null);
+            scheduleBoxRefresh();
+            return;
+        }
+
+        if (box.classList.contains('profile-photo')) {
+            state.profileImage = '';
+            updateProfilePreview();
+            if (wasMovedBox && box.isConnected) box.remove();
+            setActiveBox(null);
+            return;
+        }
+
+        if (box.classList.contains('qr-card')) {
+            state.profile.portfolio = '';
+            state.qrDataUrl = '';
+            if (portfolioInput) portfolioInput.value = '';
+            renderQr();
+            if (wasMovedBox && box.isConnected) box.remove();
+            setActiveBox(null);
+            return;
+        }
+
+        const section = box.closest('.cv-section');
+        if (box.tagName === 'H3' && section) {
+            section.remove();
+        } else if (box.classList.contains('editable-block') && section) {
+            section.remove();
+        } else {
+            box.remove();
+        }
+        if (box.dataset.boxId) deletedBoxIds.add(box.dataset.boxId);
+        setActiveBox(null);
+        scheduleBoxRefresh();
+    }
+
+    function moveBoxToPage(box, targetPage, clientX, clientY) {
+        if (!box || !targetPage || targetPage.classList.contains('is-hidden')) return;
+        const sourcePage = box.closest('.cv');
+        if (sourcePage === targetPage) return;
+        const layer = targetPage.querySelector(':scope > .cv-free-layer');
+        if (!layer) return;
+        const pageRect = targetPage.getBoundingClientRect();
+        const boxRect = box.getBoundingClientRect();
+        const left = snapValue((clientX - pageRect.left - (boxRect.width / 2)) / currentZoom);
+        const top = snapValue((clientY - pageRect.top - 18) / currentZoom);
+        box.dataset.freeBox = 'true';
+        box.style.setProperty('--box-left', `${Math.max(0, left)}px`);
+        box.style.setProperty('--box-top', `${Math.max(0, top)}px`);
+        box.style.setProperty('--box-x', '0px');
+        box.style.setProperty('--box-y', '0px');
+        layer.appendChild(box);
+        setActiveBox(box);
+    }
+
     function snapValue(value) {
         return Math.round(value / GRID_SIZE) * GRID_SIZE;
     }
@@ -658,7 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const section = target.dataset.section;
         const field = target.dataset.field;
         const index = target.dataset.index ? Number(target.dataset.index) : null;
-        const rawValue = target.textContent.trim();
+        const rawValue = getEditableText(target);
 
         if (section === 'profile') {
             state.profile[field] = rawValue;
@@ -769,6 +1050,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function applyQrSize() {
+        const size = state.qrSize || 120;
+        if (cvQrImg) {
+            cvQrImg.style.width = `${size}px`;
+            cvQrImg.style.height = `${size}px`;
+        }
+        const qrSizeInput = document.getElementById('qr-size-input');
+        if (qrSizeInput && qrSizeInput.value != size) qrSizeInput.value = size;
+    }
+
     async function generateQr() {
         const url = state.profile.portfolio;
         if (!url) {
@@ -776,7 +1067,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderQr();
             return;
         }
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(url)}`;
+        // Fetch as SVG for infinite scalability — display size is controlled purely by CSS
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&format=svg&data=${encodeURIComponent(url)}`;
         try {
             const response = await fetch(qrUrl);
             const blob = await response.blob();
@@ -800,6 +1092,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sectionQr.classList.remove('empty');
         cvQrImg.src = state.qrDataUrl || '';
         cvQrLabel.textContent = state.profile.portfolio;
+        applyQrSize();
     }
 
     function renderAll() {
@@ -812,6 +1105,19 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCerts();
         renderSocials();
         renderQr();
+        renderSectionHeadings();
+    }
+
+    function renderSectionHeadings() {
+        Object.entries(state.sectionHeadings).forEach(([id, text]) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            // Replace only text nodes – preserve child elements (e.g. drag handles)
+            Array.from(el.childNodes)
+                .filter(n => n.nodeType === Node.TEXT_NODE)
+                .forEach(n => el.removeChild(n));
+            el.appendChild(document.createTextNode(text));
+        });
     }
 
     function renderExperienceEditor() {
@@ -929,6 +1235,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .join('');
     }
 
+    function autoSizeTextarea(textarea) {
+        if (!textarea) return;
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+
+    function autoSizePanelTextareas(root = document) {
+        root.querySelectorAll('.panels-dock textarea').forEach(autoSizeTextarea);
+    }
+
     function renderEditors() {
         renderExperienceEditor();
         renderProjectEditor();
@@ -936,6 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSkillsEditor();
         renderToolsEditor();
         renderCertsEditor();
+        autoSizePanelTextareas();
     }
 
     function bindEditorEvents() {
@@ -1094,10 +1411,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const padding = 60;
         const assumedHeight = formatSelect.value === 'a3' ? 1587 : 1122;
         const pageCount = page2 && !page2.classList.contains('is-hidden') ? 2 : 1;
-        const totalHeight = assumedHeight * pageCount + PAGE_GAP * (pageCount - 1);
+        const totalHeight = assumedHeight * pageCount + pageGap * (pageCount - 1);
         const scaleHeight = (previewArea.clientHeight - padding) / totalHeight;
         currentZoom = Math.min(Math.max(scaleHeight, 0.2), 1.1);
         updateZoom();
+        updatePageBreaker();
     }
 
     function applyCvClass(targetClass, prefix) {
@@ -1176,13 +1494,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const h3 = section.querySelector('h3');
             const block = section.querySelector('.editable-block');
             return {
-                title: h3 ? h3.textContent : '',
-                content: block ? block.textContent : ''
+                title: h3 ? getEditableText(h3) : '',
+                content: block ? getEditableText(block) : ''
             };
         });
         return {
-            pageTitle: pageTitle ? pageTitle.textContent : '',
-            pageSubtitle: pageSubtitle ? pageSubtitle.textContent : '',
+            pageTitle: pageTitle ? getEditableText(pageTitle) : '',
+            pageSubtitle: pageSubtitle ? getEditableText(pageSubtitle) : '',
             sections
         };
     }
@@ -1203,6 +1521,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (block && sData.content !== undefined) block.textContent = sData.content;
             });
         }
+    }
+
+    function collectBoxPositions() {
+        const positions = {};
+        cvPages.querySelectorAll('.draggable-box[data-box-id]').forEach((box) => {
+            const id = box.dataset.boxId;
+            if (deletedBoxIds.has(id)) return;
+            const x = parseFloat(box.style.getPropertyValue('--box-x')) || 0;
+            const y = parseFloat(box.style.getPropertyValue('--box-y')) || 0;
+            const scale = parseFloat(box.style.getPropertyValue('--box-scale')) || 1;
+            const width = parseFloat(box.style.width) || 0;
+            const height = parseFloat(box.style.height) || 0;
+            const bg = box.style.backgroundColor || '';
+            const border = box.style.borderColor || '';
+            const free = box.dataset.freeBox === 'true';
+            const page = box.closest('.cv')?.id || '';
+            const left = parseFloat(box.style.getPropertyValue('--box-left')) || 0;
+            const top = parseFloat(box.style.getPropertyValue('--box-top')) || 0;
+            if (x !== 0 || y !== 0 || scale !== 1 || width || height || bg || border || free) {
+                positions[id] = { x, y, scale, width, height, bg, border, free, page, left, top };
+            }
+        });
+        return positions;
+    }
+
+    function restoreBoxPositions(positions) {
+        if (!positions) return;
+        ensureFreeLayers();
+        cvPages.querySelectorAll('.draggable-box[data-box-id]').forEach((box) => {
+            const pos = positions[box.dataset.boxId];
+            if (!pos) return;
+            if (pos.free && pos.page) {
+                const targetPage = document.getElementById(pos.page);
+                const layer = targetPage?.querySelector(':scope > .cv-free-layer');
+                if (layer) {
+                    box.dataset.freeBox = 'true';
+                    box.style.setProperty('--box-left', `${pos.left || 0}px`);
+                    box.style.setProperty('--box-top', `${pos.top || 0}px`);
+                    layer.appendChild(box);
+                }
+            }
+            box.style.setProperty('--box-x', `${pos.x}px`);
+            box.style.setProperty('--box-y', `${pos.y}px`);
+            box.style.setProperty('--box-scale', `${pos.scale ?? 1}`);
+            if (pos.width) box.style.width = `${pos.width}px`;
+            if (pos.height) box.style.height = `${pos.height}px`;
+            if (pos.bg) box.style.backgroundColor = pos.bg;
+            if (pos.border) box.style.borderColor = pos.border;
+        });
     }
 
     function loadLegacyDesign(design) {
@@ -1229,6 +1596,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const s = project.state;
             if (s.profile) Object.assign(state.profile, s.profile);
             if (s.socials) Object.assign(state.socials, s.socials);
+            if (s.sectionHeadings) Object.assign(state.sectionHeadings, s.sectionHeadings);
             if (Array.isArray(s.experience)) state.experience = s.experience;
             if (Array.isArray(s.projects)) state.projects = s.projects;
             if (Array.isArray(s.education)) state.education = s.education;
@@ -1239,6 +1607,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (s.profileShape) state.profileShape = s.profileShape;
             if (s.profileSize) state.profileSize = { ...s.profileSize };
             if (s.qrDataUrl !== undefined) state.qrDataUrl = s.qrDataUrl;
+            if (s.qrSize) state.qrSize = s.qrSize;
         }
         if (project.design) {
             const d = project.design;
@@ -1278,10 +1647,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (project.page2.content) restorePage2Content(project.page2.content);
         }
+        deletedBoxIds = new Set(Array.isArray(project.deletedBoxIds) ? project.deletedBoxIds : []);
+        if (project.pageGap) pageGap = Math.max(MIN_PAGE_GAP, Math.min(MAX_PAGE_GAP, Number(project.pageGap) || 40));
         syncInputs();
         renderEditors();
         renderAll();
         autoFitZoom();
+        updatePageBreaker();
+        // Restore box positions after render + draggable init
+        requestAnimationFrame(() => {
+            refreshDraggableBoxes();
+            if (project.boxPositions) restoreBoxPositions(project.boxPositions);
+        });
     }
 
     // Project save/load (full state + design)
@@ -1318,25 +1695,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 skills: JSON.parse(JSON.stringify(state.skills)),
                 tools: JSON.parse(JSON.stringify(state.tools)),
                 certs: JSON.parse(JSON.stringify(state.certs)),
+                sectionHeadings: { ...state.sectionHeadings },
                 profileImage: state.profileImage,
                 profileShape: state.profileShape,
                 profileSize: { ...state.profileSize },
-                qrDataUrl: state.qrDataUrl
+                qrDataUrl: state.qrDataUrl,
+                qrSize: state.qrSize
             },
             page2: {
                 visible: page2 ? !page2.classList.contains('is-hidden') : false,
                 content: collectPage2Content()
-            }
+            },
+            pageGap,
+            deletedBoxIds: Array.from(deletedBoxIds),
+            boxPositions: collectBoxPositions()
         };
-        const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${safeName}_CV_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const json = JSON.stringify(project, null, 2);
+        const suggestedName = `${safeName}_CV_${new Date().toISOString().slice(0, 10)}.json`;
+        if (window.showSaveFilePicker) {
+            (async () => {
+                try {
+                    const fileHandle = await window.showSaveFilePicker({
+                        suggestedName,
+                        types: [{ description: 'CV-projekt (JSON)', accept: { 'application/json': ['.json'] } }]
+                    });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(json);
+                    await writable.close();
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Kunde inte spara:', err);
+                        alert('Kunde inte spara filen: ' + err.message);
+                    }
+                }
+            })();
+        } else {
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = suggestedName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
     };
 
     const loadDesign = (event) => {
@@ -1439,6 +1842,11 @@ function rgbToHex(color) {
         setInputValue(websiteInput, state.profile.website);
         setInputValue(taglineInput, state.profile.tagline);
         setInputValue(portfolioInput, state.profile.portfolio);
+
+        if (qrSizeInput) {
+            qrSizeInput.value = state.qrSize || 120;
+            if (qrSizeLbl) qrSizeLbl.textContent = `${state.qrSize || 120}px`;
+        }
 
         if (profileShapeSelect) {
             setInputValue(profileShapeSelect, state.profileShape);
@@ -1566,6 +1974,15 @@ function rgbToHex(color) {
         generateQr();
     });
 
+    if (qrSizeInput) {
+        qrSizeInput.addEventListener('input', () => {
+            const size = Math.max(40, Math.min(300, Number(qrSizeInput.value)));
+            state.qrSize = size;
+            if (qrSizeLbl) qrSizeLbl.textContent = `${size}px`;
+            applyQrSize();
+        });
+    }
+
     linkedinInput.addEventListener('input', () => {
         state.socials.linkedin = linkedinInput.value;
         renderSocials();
@@ -1619,6 +2036,16 @@ function rgbToHex(color) {
     });
 
     cvPages.addEventListener('input', (event) => {
+        // Section heading h3 edits
+        const heading = event.target.closest('h3[id^="heading-"]');
+        if (heading) {
+            const text = Array.from(heading.childNodes)
+                .filter(n => n.nodeType === Node.TEXT_NODE)
+                .map(n => n.textContent)
+                .join('');
+            state.sectionHeadings[heading.id] = text;
+            return;
+        }
         const editable = event.target.closest('[contenteditable="true"][data-section]');
         if (!editable) return;
         handleEditableInput(editable);
@@ -1630,11 +2057,30 @@ function rgbToHex(color) {
     });
 
     cvPages.addEventListener('pointerdown', (event) => {
+        const breaker = event.target.closest('.page-breaker-line');
+        if (breaker && !breaker.classList.contains('is-hidden')) {
+            event.preventDefault();
+            isDraggingBreaker = true;
+            breakerStartY = event.clientY;
+            breakerStartGap = pageGap;
+            breaker.classList.add('dragging');
+            return;
+        }
+
+        const deleteBtn = event.target.closest('.box-delete-btn');
+        if (deleteBtn) {
+            event.preventDefault();
+            event.stopPropagation();
+            deleteDraggableBox(deleteBtn.closest('.draggable-box'));
+            return;
+        }
+
         const resizeHandle = event.target.closest('.box-resize-handle');
+        const dragHandle = event.target.closest('.box-drag-handle');
         const box = event.target.closest('.draggable-box');
         if (!box) return;
 
-        if (!resizeHandle) {
+        if (!resizeHandle && !dragHandle) {
             const editable = event.target.closest('[contenteditable="true"]');
             if (editable) {
                 setActiveBox(box);
@@ -1651,7 +2097,10 @@ function rgbToHex(color) {
         dragStartY = event.clientY;
         boxStartX = parseFloat(box.style.getPropertyValue('--box-x')) || 0;
         boxStartY = parseFloat(box.style.getPropertyValue('--box-y')) || 0;
-        boxStartScale = parseFloat(box.style.getPropertyValue('--box-scale')) || 1;
+        const boxRect = box.getBoundingClientRect();
+        const boxScale = parseFloat(box.style.getPropertyValue('--box-scale')) || 1;
+        boxStartWidth = boxRect.width / (currentZoom * boxScale);
+        boxStartHeight = boxRect.height / (currentZoom * boxScale);
 
         if (resizeHandle) {
             isResizingBox = true;
@@ -1661,6 +2110,16 @@ function rgbToHex(color) {
     });
 
     document.addEventListener('pointermove', (event) => {
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+
+        if (isDraggingBreaker) {
+            const dy = (event.clientY - breakerStartY) / currentZoom;
+            pageGap = Math.max(MIN_PAGE_GAP, Math.min(MAX_PAGE_GAP, snapValue(breakerStartGap + dy)));
+            updatePageBreaker();
+            return;
+        }
+
         if (!activeBox) return;
         if (!isDraggingBox && !isResizingBox) return;
 
@@ -1675,15 +2134,29 @@ function rgbToHex(color) {
         }
 
         if (isResizingBox) {
-            const rawScale = boxStartScale + dx * 0.005;
-            const snappedScale = Math.round(rawScale / 0.05) * 0.05;
-            const nextScale = Math.max(0.4, Math.min(3, snappedScale));
-            activeBox.style.setProperty('--box-scale', nextScale);
+            const nextWidth = Math.max(24, snapValue(boxStartWidth + dx));
+            const nextHeight = Math.max(18, snapValue(boxStartHeight + dy));
+            activeBox.style.width = `${nextWidth}px`;
+            activeBox.style.height = `${nextHeight}px`;
         }
     });
 
     document.addEventListener('pointerup', () => {
+        if (isDraggingBreaker) {
+            const breaker = cvPages.querySelector(':scope > .page-breaker-line');
+            if (breaker) breaker.classList.remove('dragging');
+            isDraggingBreaker = false;
+            updatePageBreaker();
+            return;
+        }
+        const wasDragging = isDraggingBox;
         if (activeBox) activeBox.classList.remove('dragging');
+        if (wasDragging && activeBox) {
+            const targetPage = document.elementsFromPoint(lastPointerX, lastPointerY)
+                .map((el) => el.closest?.('.cv'))
+                .find(Boolean);
+            moveBoxToPage(activeBox, targetPage, lastPointerX, lastPointerY);
+        }
         isDraggingBox = false;
         isResizingBox = false;
     });
@@ -1771,6 +2244,7 @@ function rgbToHex(color) {
             const isHidden = page2.classList.toggle('is-hidden');
             togglePage2Btn.textContent = isHidden ? 'Lägg till sida 2' : 'Ta bort sida 2';
             autoFitZoom();
+            updatePageBreaker();
         });
     }
 
@@ -1799,49 +2273,48 @@ function rgbToHex(color) {
             styleEl.id = styleId;
             document.head.appendChild(styleEl);
         }
+        const isA3 = formatSelect.value === 'a3';
+        const cvW = isA3 ? '297mm' : '210mm';
+        const cvH = isA3 ? '420mm' : '297mm';
+        const pageSize = isA3 ? 'A3 portrait' : 'A4 portrait';
         styleEl.innerHTML = `
-            @page { 
-                margin: 0mm !important; 
-                size: ${formatSelect.value === 'a3' ? 'A3 portrait !important' : 'A4 portrait !important'}; 
-                padding: 0 !important;
-            }
-            * { box-sizing: border-box !important; }
-            html, body { 
-                margin: 0 !important; 
-                padding: 0 !important; 
-                height: auto !important;
-                width: 100% !important;
-                overflow: visible !important;
-            }
-            .no-print { display: none !important; }
-            .app-container, .preview-area { 
-                display: block !important; 
-                position: static !important; 
-                padding: 0 !important;
+            @page { margin: 0; size: ${pageSize}; }
+            html, body {
                 margin: 0 !important;
-                height: auto !important;
+                padding: 0 !important;
                 background: white !important;
             }
-            .cv-wrapper { 
-                transform: none !important; 
-                position: static !important; 
-                margin: 0 auto !important; 
-                width: 100% !important;
-            }
-            .cv-pages { 
-                gap: 0 !important; 
-                align-items: center !important;
-                justify-content: center !important;
-            }
-            .cv { 
-                box-shadow: none !important; 
-                margin: 0 !important; 
-                padding: 24px !important;
-                width: 100% !important;
+            .no-print { display: none !important; }
+            .app-container {
+                display: block !important;
+                width: ${cvW} !important;
                 height: auto !important;
-                min-height: 100vh !important;
+                overflow: visible !important;
+            }
+            .app-workspace {
+                display: block !important;
+                overflow: visible !important;
+            }
+            .canvas-area {
+                display: block !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                background: none !important;
+            }
+            .cv-wrapper {
+                transform: none !important;
+                display: block !important;
+            }
+            .cv-pages {
+                display: block !important;
+                gap: 0 !important;
+            }
+            .cv {
+                box-shadow: none !important;
+                width: ${cvW} !important;
+                height: ${cvH} !important;
+                margin: 0 !important;
                 page-break-after: always !important;
-                page-break-inside: avoid !important;
             }
             .cv:last-child { page-break-after: auto !important; }
             .cv-page-2.is-hidden { display: none !important; }
@@ -1864,6 +2337,8 @@ function rgbToHex(color) {
                 backgroundColor: null,
                 logging: false,
                 onclone: (clonedDoc) => {
+                    clonedDoc.querySelectorAll('.box-resize-handle, .box-drag-handle, .box-delete-btn, .page-breaker-line')
+                        .forEach((el) => el.remove());
                     clonedDoc.querySelectorAll('img').forEach((img) => {
                         if (img.src && img.src.startsWith('http')) img.remove();
                     });
@@ -1915,6 +2390,13 @@ function rgbToHex(color) {
     document.querySelectorAll('.panel-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => switchToPanel(btn.dataset.panel));
     });
+
+    const panelsDock = document.getElementById('panels-dock');
+    if (panelsDock) {
+        panelsDock.addEventListener('input', (event) => {
+            if (event.target.matches('textarea')) autoSizeTextarea(event.target);
+        });
+    }
 
     // ═══ PALETTE SWATCHES ═══
     function syncPaletteSwatches(palValue) {
@@ -2046,7 +2528,7 @@ function rgbToHex(color) {
             html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">🔗 ${label}</span></div><div class="ctx-fields"><label class="ctx-label">${label}</label><input type="text" class="ctx-input" data-ctx-social="${ctx.field}" value="${escapeHtml(state.socials[ctx.field] || '')}"></div></div>`;
         } else if (ctx && ctx.type === 'qr') {
             label = 'QR-kod';
-            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">◻ QR-kod</span></div><div class="ctx-fields"><label class="ctx-label">Portfolio URL</label><input type="text" class="ctx-input" data-ctx-profile="portfolio" value="${escapeHtml(state.profile.portfolio || '')}"><button class="ctx-action-btn" id="ctx-gen-qr">Generera QR-kod</button></div></div>`;
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">◻ QR-kod</span></div><div class="ctx-fields"><label class="ctx-label">Portfolio URL</label><input type="text" class="ctx-input" data-ctx-profile="portfolio" value="${escapeHtml(state.profile.portfolio || '')}"><label class="ctx-label">Storlek (px)</label><div style="display:flex;gap:8px;align-items:center"><input type="range" class="ctx-input" id="ctx-qr-size" min="40" max="300" step="8" value="${state.qrSize || 120}" style="flex:1"><span id="ctx-qr-size-lbl" style="min-width:34px;font-size:0.75rem;color:var(--ui-muted,#888)">${state.qrSize || 120}px</span></div><button class="ctx-action-btn" id="ctx-gen-qr">Generera QR-kod</button></div></div>`;
         } else if (ctx && ctx.type === 'contact') {
             label = 'Kontakt';
             html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">📋 Kontakt</span></div><div class="ctx-fields"><label class="ctx-label">E-post</label><input type="text" class="ctx-input" data-ctx-profile="email" value="${escapeHtml(state.profile.email || '')}"><label class="ctx-label">Telefon</label><input type="text" class="ctx-input" data-ctx-profile="phone" value="${escapeHtml(state.profile.phone || '')}"><label class="ctx-label">Plats</label><input type="text" class="ctx-input" data-ctx-profile="location" value="${escapeHtml(state.profile.location || '')}"><label class="ctx-label">Webbplats</label><input type="text" class="ctx-input" data-ctx-profile="website" value="${escapeHtml(state.profile.website || '')}"></div></div>`;
@@ -2055,6 +2537,7 @@ function rgbToHex(color) {
         }
 
         ctxEditor.innerHTML = html;
+        autoSizePanelTextareas(ctxEditor);
         bindContextPanelEvents();
         updateStatusBar(label + ' markerat');
         switchToPanel('properties');
@@ -2073,6 +2556,13 @@ function rgbToHex(color) {
 
     function handleContextInput(event) {
         const t = event.target;
+        if (t.id === 'ctx-qr-size') {
+            const size = Math.max(40, Math.min(300, Number(t.value)));
+            state.qrSize = size;
+            const lbl = document.getElementById('ctx-qr-size-lbl');
+            if (lbl) lbl.textContent = `${size}px`;
+            applyQrSize();
+        }
         if (t.dataset.ctxSection) {
             const section = t.dataset.ctxSection;
             const index = Number(t.dataset.ctxIndex);
@@ -2152,6 +2642,8 @@ function rgbToHex(color) {
         if (paletteSelect) syncPaletteSwatches(paletteSelect.value);
         renderEditors();
         renderAll();
+        ensureFreeLayers();
+        ensurePageBreaker();
         autoFitZoom();
         generateQr();
         refreshDraggableBoxes();
