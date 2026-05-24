@@ -8,6 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const paletteSelect = document.getElementById('palette-select');
     const fontSelect = document.getElementById('font-select');
     const backgroundSelect = document.getElementById('background-select');
+    const bgImageUrlInput = document.getElementById('background-image-url-input');
+    const bgImageUploadBtn = document.getElementById('background-image-upload-btn');
+    const bgImageFileInput = document.getElementById('background-image-file-input');
+    const bgImageOpacityInput = document.getElementById('background-image-opacity-input');
+    const bgImageOpacityLbl = document.getElementById('background-image-opacity-lbl');
+    const clearBgImageBtn = document.getElementById('clear-background-image-btn');
     const sectionStyleSelect = document.getElementById('section-style-select');
     const accentColorInput = document.getElementById('accent-color');
     const skillStyleSelect = document.getElementById('skill-style-select');
@@ -23,7 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // const loadDesignBtn = document.getElementById('load-design-btn');
 
     const boxBgColor = document.getElementById('box-background-color');
+    const boxTextColor = document.getElementById('box-text-color');
     const boxBorderColor = document.getElementById('box-border-color');
+    const boxStylePreset = document.getElementById('box-style-preset');
+    const boxShapeSelect = document.getElementById('box-shape-select');
+    const boxPaddingInput = document.getElementById('box-padding-input');
+    const boxPaddingLbl = document.getElementById('box-padding-lbl');
+    const boxRadiusInput = document.getElementById('box-radius-input');
+    const boxRadiusLbl = document.getElementById('box-radius-lbl');
+    const boxBorderWidthInput = document.getElementById('box-border-width-input');
+    const boxBorderWidthLbl = document.getElementById('box-border-width-lbl');
+    const applyBoxStyleAllBtn = document.getElementById('apply-box-style-all-btn');
     const clearBoxStyleBtn = document.getElementById('clear-box-style-btn');
     const templateGrid = document.getElementById('template-grid');
 
@@ -77,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportPngBtn = document.getElementById('export-png-btn');
     const togglePage2Btn = document.getElementById('toggle-page2-btn');
     const page2 = document.getElementById('cv-page-2');
+    const page2TemplateHtml = page2 ? page2.innerHTML : '';
 
     const cvName = document.getElementById('cv-name');
     const cvTitle = document.getElementById('cv-title');
@@ -106,12 +123,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomInBtn = document.getElementById('zoom-in');
     const zoomOutBtn = document.getElementById('zoom-out');
     const zoomLevelEl = document.getElementById('zoom-level');
-    let currentZoom = 0.7;
+    let currentZoom = 0.58;
     const ZOOM_STEP = 0.05;
+    const MAX_AUTO_ZOOM = 0.78;
+    const AUTO_FIT_BREATHING_ROOM = 0.88;
     let pageGap = 40;
     const MIN_PAGE_GAP = 16;
     const MAX_PAGE_GAP = 220;
     const GRID_SIZE = 8;
+    const PAGE2_SECTION_IDS = ['continued-projects', 'freelance', 'awards', 'extra-skills', 'references'];
 
     let activeBox = null;
     let isDraggingBox = false;
@@ -214,6 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
         profileSize: { width: 120, height: 120 },
         qrDataUrl: '',
         qrSize: 80,
+        backgroundImage: '',
+        backgroundImageOpacity: 72,
         sectionHeadings: {
             'heading-experience': 'Experience',
             'heading-projects': 'Projects & Portfolio',
@@ -231,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             palette: 'palette-slate',
             font: 'font-sora',
             background: 'bg-clean',
-            section: 'section-cards',
+            section: 'section-lines',
             layout: 'layout-two',
             skillStyle: 'skills-style-bars',
             accent: '#ff6b3d'
@@ -264,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
             accent: '#00f5d4'
         },
         'template-geo': {
-            palette: 'palette-studio',
+            palette: 'palette-forest',
             font: 'font-grotesk',
             background: 'bg-studio',
             section: 'section-lines',
@@ -273,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             accent: '#ff6b3d'
         },
         'template-editorial': {
-            palette: 'palette-sand',
+            palette: 'palette-mono',
             font: 'font-plex',
             background: 'bg-clean',
             section: 'section-lines',
@@ -290,10 +312,19 @@ document.addEventListener('DOMContentLoaded', () => {
             skillStyle: 'skills-style-stars',
             accent: '#00f5d4'
         },
+        'template-liquid-glass': {
+            palette: 'palette-studio',
+            font: 'font-sora',
+            background: 'bg-story',
+            section: 'section-glass',
+            layout: 'layout-two',
+            skillStyle: 'skills-style-dots',
+            accent: '#7dd3fc'
+        },
         'template-retro': {
             palette: 'palette-sand',
             font: 'font-grotesk',
-            background: 'bg-clean',
+            background: 'bg-story',
             section: 'section-lines',
             layout: 'layout-two',
             skillStyle: 'skills-style-bars',
@@ -302,14 +333,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'template-corporate': {
             palette: 'palette-studio',
             font: 'font-plex',
-            background: 'bg-clean',
+            background: 'bg-studio',
             section: 'section-lines',
             layout: 'layout-two',
             skillStyle: 'skills-style-bars',
             accent: '#1e3a5f'
         },
         'template-agency': {
-            palette: 'palette-ember',
+            palette: 'palette-rose',
             font: 'font-grotesk',
             background: 'bg-gradient',
             section: 'section-cards',
@@ -510,6 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function computeBoxId(box) {
+        if (box.classList.contains('cv-bg-shape')) return null;
         // Section h3 elements: use parent section id
         if (box.tagName === 'H3') {
             const section = box.closest('.cv-section');
@@ -529,6 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (box.classList.contains('profile-photo')) return 'profile-photo';
         if (box.classList.contains('title-pill')) return 'title-pill';
         if (box.classList.contains('qr-card')) return 'qr-card';
+        if (box.classList.contains('cv-header-secondary')) return 'page2-header';
         // editable-block in page2: use page section index
         const parentSection = box.closest('.cv-section');
         if (parentSection) {
@@ -539,7 +572,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
+    function ensurePage2SectionIds() {
+        if (!page2) return;
+        page2.querySelectorAll('.cv-section').forEach((section, index) => {
+            if (!section.dataset.page2SectionId) {
+                section.dataset.page2SectionId = PAGE2_SECTION_IDS[index] || `section-${index}`;
+            }
+        });
+    }
+
+    function resetPage2Template() {
+        if (!page2 || !page2TemplateHtml) return;
+        page2.innerHTML = page2TemplateHtml;
+        ensurePage2SectionIds();
+    }
+
+    function rememberDeletedBox(box) {
+        if (box?.dataset.boxId) deletedBoxIds.add(box.dataset.boxId);
+    }
+
+    function rememberDeletedPage2Section(section) {
+        if (!section || !page2?.contains(section)) return;
+        const sectionIndex = Array.from(cvPages.querySelectorAll('.cv-section')).indexOf(section);
+        if (sectionIndex < 0) return;
+        deletedBoxIds.add(`h3-sidx-${sectionIndex}`);
+        deletedBoxIds.add(`block-sidx-${sectionIndex}`);
+    }
+
     function refreshDraggableBoxes() {
+        ensurePage2SectionIds();
+        cvPages.querySelectorAll('.cv-bg-shape.draggable-box').forEach((shape) => {
+            shape.classList.remove('draggable-box', 'active');
+            shape.removeAttribute('data-box-id');
+            shape.querySelectorAll(':scope > .box-resize-handle, :scope > .box-delete-btn, :scope > .box-drag-handle').forEach((control) => control.remove());
+        });
         const selectors = [
             '.cv-section h3',
             '.entry',
@@ -550,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '.qr-card',
             '.contact-item',
             '.editable-block',
+            '.cv-page-2 .cv-header-secondary',
             '.profile-photo',
             '.title-pill'
         ];
@@ -759,12 +826,24 @@ document.addEventListener('DOMContentLoaded', () => {
             .map((entry) => {
                 const raw = state.socials[entry.key];
                 const url = normalizeSocialUrl(entry.key, raw);
-                return `<a class="social-link editable" contenteditable="true" data-section="socials" data-field="${entry.key}" data-icon="${entry.icon}" href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(raw)}</a>`;
+                return `<a class="social-link editable" contenteditable="true" data-section="socials" data-field="${entry.key}" data-icon="${entry.icon}" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span class="social-icon" contenteditable="false" aria-hidden="true">${socialSvgIcon(entry.key)}</span><span>${escapeHtml(raw)}</span></a>`;
             })
             .join('');
         cvSocialsList.innerHTML = html;
         updateSectionVisibility(sectionSocials, entries.filter((entry) => state.socials[entry.key]));
         scheduleBoxRefresh();
+    }
+
+    function socialSvgIcon(platform) {
+        const icons = {
+            linkedin: '<svg viewBox="0 0 24 24" focusable="false"><path d="M6.5 8.6h3.1V18H6.5V8.6Zm1.6-4.4a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6ZM11.2 8.6h3v1.3c.4-.7 1.4-1.6 3-1.6 3.2 0 3.8 2.1 3.8 4.8V18h-3.1v-4.4c0-1.1 0-2.4-1.5-2.4s-1.8 1.2-1.8 2.4V18h-3.1V8.6Z"/></svg>',
+            behance: '<svg viewBox="0 0 24 24" focusable="false"><path d="M4 6h5.5c2 0 3.3 1 3.3 2.6 0 1-.5 1.8-1.4 2.2 1.3.4 2 1.3 2 2.7 0 2-1.6 3.2-4.1 3.2H4V6Zm3 4.2h2c.8 0 1.2-.4 1.2-1s-.4-1-1.3-1H7v2Zm0 4.2h2.2c1 0 1.5-.4 1.5-1.2s-.5-1.2-1.6-1.2H7v2.4ZM15 7h5v1.5h-5V7Zm2.7 2.3c2.4 0 3.9 1.6 3.9 4.1v.7h-5.7c.1 1 .8 1.5 1.8 1.5.8 0 1.3-.3 1.6-.8h2.1c-.5 1.4-1.8 2.3-3.8 2.3-2.4 0-4-1.6-4-3.9s1.7-3.9 4.1-3.9Zm1.6 3.4c-.1-.9-.7-1.4-1.6-1.4s-1.5.5-1.7 1.4h3.3Z"/></svg>',
+            instagram: '<svg viewBox="0 0 24 24" focusable="false"><path d="M8 4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Zm0 2.2A1.8 1.8 0 0 0 6.2 8v8A1.8 1.8 0 0 0 8 17.8h8a1.8 1.8 0 0 0 1.8-1.8V8A1.8 1.8 0 0 0 16 6.2H8Zm4 2.8a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm4.4-1.1a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6Z"/></svg>',
+            tiktok: '<svg viewBox="0 0 24 24" focusable="false"><path d="M14.6 4c.4 2.3 1.7 3.7 3.9 3.9v3a6.8 6.8 0 0 1-3.8-1.2v4.8c0 3-2.1 5.1-5.1 5.1A4.9 4.9 0 0 1 4.5 15c0-3.1 2.7-5.4 5.9-4.8v3.1c-1.5-.5-2.8.4-2.8 1.7 0 1.1.9 1.8 1.9 1.8 1.2 0 2-.7 2-2.2V4h3.1Z"/></svg>',
+            youtube: '<svg viewBox="0 0 24 24" focusable="false"><path d="M20.6 7.4c.3 1.2.3 4.6.3 4.6s0 3.4-.3 4.6a2.4 2.4 0 0 1-1.7 1.7c-1.2.3-6.9.3-6.9.3s-5.7 0-6.9-.3a2.4 2.4 0 0 1-1.7-1.7C3.1 15.4 3.1 12 3.1 12s0-3.4.3-4.6a2.4 2.4 0 0 1 1.7-1.7c1.2-.3 6.9-.3 6.9-.3s5.7 0 6.9.3a2.4 2.4 0 0 1 1.7 1.7ZM10.3 14.7l4.7-2.7-4.7-2.7v5.4Z"/></svg>',
+            vimeo: '<svg viewBox="0 0 24 24" focusable="false"><path d="M21 8.2c-.1 2.6-1.9 6.1-5.4 10.3-1.4 1.7-2.7 2.6-3.8 2.6-1.3 0-2.4-1.2-3.3-3.6l-1.8-6.2c-.7-2.4-1.4-3.6-2.1-3.6-.2 0-.7.3-1.6.9L2 7.3l3.1-2.8c1.4-1.2 2.5-1.8 3.2-1.9 1.7-.2 2.7 1 3.1 3.5.4 2.7.7 4.4.9 5 .5 2.1 1.1 3.2 1.7 3.2.5 0 1.2-.8 2.1-2.3.9-1.5 1.4-2.7 1.5-3.5.1-1.3-.4-2-1.5-2-.5 0-1 .1-1.6.4 1.1-3.5 3.1-5.2 6.1-5.1 2.2.1 3.2 1.5 3.1 4.4Z"/></svg>'
+        };
+        return icons[platform] || '<svg viewBox="0 0 24 24" focusable="false"><path d="M12 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 4v5.2l4.4 2.6.9-1.5-3.5-2.1V8H11Z"/></svg>';
     }
 
     function updateSkillMeters(skillItem, level) {
@@ -888,15 +967,25 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (box.classList.contains('cv-header-secondary')) {
+            rememberDeletedBox(box);
+            box.remove();
+            setActiveBox(null);
+            scheduleBoxRefresh();
+            return;
+        }
+
         const section = box.closest('.cv-section');
         if (box.tagName === 'H3' && section) {
+            rememberDeletedPage2Section(section);
             section.remove();
         } else if (box.classList.contains('editable-block') && section) {
+            rememberDeletedPage2Section(section);
             section.remove();
         } else {
+            rememberDeletedBox(box);
             box.remove();
         }
-        if (box.dataset.boxId) deletedBoxIds.add(box.dataset.boxId);
         setActiveBox(null);
         scheduleBoxRefresh();
     }
@@ -1408,12 +1497,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function autoFitZoom() {
         const previewArea = document.querySelector('.canvas-area') || document.querySelector('.preview-area');
-        const padding = 60;
+        const paddingX = 96;
+        const paddingY = 120;
+        const assumedWidth = formatSelect.value === 'a3' ? 1122 : 794;
         const assumedHeight = formatSelect.value === 'a3' ? 1587 : 1122;
         const pageCount = page2 && !page2.classList.contains('is-hidden') ? 2 : 1;
         const totalHeight = assumedHeight * pageCount + pageGap * (pageCount - 1);
-        const scaleHeight = (previewArea.clientHeight - padding) / totalHeight;
-        currentZoom = Math.min(Math.max(scaleHeight, 0.2), 1.1);
+        const scaleWidth = (previewArea.clientWidth - paddingX) / assumedWidth;
+        const scaleHeight = (previewArea.clientHeight - paddingY) / totalHeight;
+        const fittedScale = Math.min(scaleWidth, scaleHeight) * AUTO_FIT_BREATHING_ROOM;
+        currentZoom = Math.min(Math.max(fittedScale, 0.2), MAX_AUTO_ZOOM);
         updateZoom();
         updatePageBreaker();
     }
@@ -1435,26 +1528,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (backgroundSelect) backgroundSelect.value = defaults.background || 'bg-clean';
         if (sectionStyleSelect) sectionStyleSelect.value = defaults.section || 'section-cards';
         if (skillStyleSelect) skillStyleSelect.value = defaults.skillStyle || 'skills-style-bars';
+        if (accentColorInput) accentColorInput.value = defaults.accent || '#ff6b3d';
 
         applyCvClass(defaults.layout || 'layout-two', 'layout-');
-        applyCvClass(defaults.palette || 'palette-slate', 'palette-');
+        applyPalette(defaults.palette || 'palette-slate');
         applyCvClass(defaults.font || 'font-sora', 'font-');
         applyCvClass(defaults.background || 'bg-clean', 'bg-');
         applyCvClass(defaults.section || 'section-cards', 'section-');
         applyCvClass(defaults.skillStyle || 'skills-style-bars', 'skills-style-');
 
-        // Sync color pickers from palette; clear any inline overrides so palette class takes effect
-        clearInlineColorVars();
-        syncColorPickersFromPalette(defaults.palette || 'palette-slate');
-        if (accentColorInput) accentColorInput.value = defaults.accent || '#ff6b3d';
+        if (isLiquidGlassActive()) updateCvColors();
     }
 
     function resetColors() {
         clearInlineColorVars();
         if (paletteSelect) {
             paletteSelect.selectedIndex = 0;
-            applyCvClass(paletteSelect.value, 'palette-');
-            syncColorPickersFromPalette(paletteSelect.value);
+            applyPalette(paletteSelect.value);
         }
     }
 
@@ -1486,19 +1576,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (accentColorInput) accentColorInput.value = colors.primary;
     }
 
+    function isLiquidGlassActive() {
+        return Array.from(cvPages.querySelectorAll('.cv')).some((page) => page.classList.contains('template-liquid-glass'));
+    }
+
+    function applyPalette(paletteClass) {
+        applyCvClass(paletteClass, 'palette-');
+        clearInlineColorVars();
+        syncColorPickersFromPalette(paletteClass);
+        if (isLiquidGlassActive()) updateCvColors();
+    }
+
     function collectPage2Content() {
         if (!page2) return null;
-        const pageTitle = page2.querySelector('.page-title');
-        const pageSubtitle = page2.querySelector('.page-subtitle');
+        ensurePage2SectionIds();
+        const page2Header = page2.querySelector('.cv-header-secondary');
+        const pageTitle = page2Header?.querySelector('.page-title');
+        const pageSubtitle = page2Header?.querySelector('.page-subtitle');
         const sections = Array.from(page2.querySelectorAll('.cv-section')).map(section => {
             const h3 = section.querySelector('h3');
             const block = section.querySelector('.editable-block');
             return {
+                id: section.dataset.page2SectionId || '',
                 title: h3 ? getEditableText(h3) : '',
                 content: block ? getEditableText(block) : ''
             };
         });
         return {
+            headerVisible: !!page2Header,
             pageTitle: pageTitle ? getEditableText(pageTitle) : '',
             pageSubtitle: pageSubtitle ? getEditableText(pageSubtitle) : '',
             sections
@@ -1507,20 +1612,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function restorePage2Content(content) {
         if (!page2 || !content) return;
-        const pageTitle = page2.querySelector('.page-title');
-        const pageSubtitle = page2.querySelector('.page-subtitle');
+        ensurePage2SectionIds();
+        removeDeletedPage2SectionsFromBoxIds();
+        if (content.headerVisible === false || deletedBoxIds.has('page2-header')) {
+            page2.querySelector('.cv-header-secondary')?.remove();
+        }
+        const page2Header = page2.querySelector('.cv-header-secondary');
+        const pageTitle = page2Header?.querySelector('.page-title');
+        const pageSubtitle = page2Header?.querySelector('.page-subtitle');
         if (pageTitle && content.pageTitle !== undefined) pageTitle.textContent = content.pageTitle;
         if (pageSubtitle && content.pageSubtitle !== undefined) pageSubtitle.textContent = content.pageSubtitle;
         if (content.sections) {
+            const hasStableIds = content.sections.some((section) => section.id);
+            if (hasStableIds) {
+                const savedIds = new Set(content.sections.map((section) => section.id).filter(Boolean));
+                page2.querySelectorAll('.cv-section').forEach((section) => {
+                    if (!savedIds.has(section.dataset.page2SectionId)) section.remove();
+                });
+            }
             const sections = page2.querySelectorAll('.cv-section');
             content.sections.forEach((sData, idx) => {
-                if (!sections[idx]) return;
-                const h3 = sections[idx].querySelector('h3');
-                const block = sections[idx].querySelector('.editable-block');
+                const section = sData.id
+                    ? page2.querySelector(`.cv-section[data-page2-section-id="${sData.id}"]`)
+                    : sections[idx];
+                if (!section) return;
+                const h3 = section.querySelector('h3');
+                const block = section.querySelector('.editable-block');
                 if (h3 && sData.title !== undefined) h3.textContent = sData.title;
                 if (block && sData.content !== undefined) block.textContent = sData.content;
             });
         }
+    }
+
+    function removeDeletedPage2SectionsFromBoxIds() {
+        if (!page2 || !deletedBoxIds.size) return;
+        Array.from(page2.querySelectorAll('.cv-section')).forEach((section) => {
+            const sectionIndex = Array.from(cvPages.querySelectorAll('.cv-section')).indexOf(section);
+            if (deletedBoxIds.has(`h3-sidx-${sectionIndex}`) || deletedBoxIds.has(`block-sidx-${sectionIndex}`)) {
+                section.remove();
+            }
+        });
     }
 
     function collectBoxPositions() {
@@ -1534,13 +1665,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const width = parseFloat(box.style.width) || 0;
             const height = parseFloat(box.style.height) || 0;
             const bg = box.style.backgroundColor || '';
+            const color = box.style.color || '';
             const border = box.style.borderColor || '';
+            const borderWidth = parseFloat(box.style.borderWidth) || 0;
+            const padding = parseFloat(box.style.padding) || 0;
+            const radius = parseFloat(box.style.borderRadius) || 0;
+            const shape = box.dataset.boxShape || '';
             const free = box.dataset.freeBox === 'true';
             const page = box.closest('.cv')?.id || '';
             const left = parseFloat(box.style.getPropertyValue('--box-left')) || 0;
             const top = parseFloat(box.style.getPropertyValue('--box-top')) || 0;
-            if (x !== 0 || y !== 0 || scale !== 1 || width || height || bg || border || free) {
-                positions[id] = { x, y, scale, width, height, bg, border, free, page, left, top };
+            if (x !== 0 || y !== 0 || scale !== 1 || width || height || bg || color || border || borderWidth || padding || radius || shape || free) {
+                positions[id] = { x, y, scale, width, height, bg, color, border, borderWidth, padding, radius, shape, free, page, left, top };
             }
         });
         return positions;
@@ -1568,7 +1704,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pos.width) box.style.width = `${pos.width}px`;
             if (pos.height) box.style.height = `${pos.height}px`;
             if (pos.bg) box.style.backgroundColor = pos.bg;
+            if (pos.color) box.style.color = pos.color;
             if (pos.border) box.style.borderColor = pos.border;
+            if (pos.borderWidth !== undefined) {
+                box.style.borderWidth = `${pos.borderWidth}px`;
+                box.style.borderStyle = pos.borderWidth > 0 ? 'solid' : 'none';
+            }
+            if (pos.padding !== undefined) box.style.padding = `${pos.padding}px`;
+            if (pos.radius !== undefined) box.style.borderRadius = `${pos.radius}px`;
+            if (pos.shape) applyBoxShape(box, pos.shape);
+            if (pos.bg || pos.color || pos.border || pos.borderWidth || pos.padding || pos.radius || pos.shape) {
+                box.classList.add('has-box-style');
+            }
         });
     }
 
@@ -1637,7 +1784,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (d.hasInlineColors) updateCvColors();
             }
         }
+        deletedBoxIds = new Set(Array.isArray(project.deletedBoxIds) ? project.deletedBoxIds : []);
         if (project.page2 && page2) {
+            resetPage2Template();
             if (project.page2.visible) {
                 page2.classList.remove('is-hidden');
                 if (togglePage2Btn) togglePage2Btn.textContent = 'Ta bort sida 2';
@@ -1647,7 +1796,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (project.page2.content) restorePage2Content(project.page2.content);
         }
-        deletedBoxIds = new Set(Array.isArray(project.deletedBoxIds) ? project.deletedBoxIds : []);
         if (project.pageGap) pageGap = Math.max(MIN_PAGE_GAP, Math.min(MAX_PAGE_GAP, Number(project.pageGap) || 40));
         syncInputs();
         renderEditors();
@@ -1765,27 +1913,106 @@ document.addEventListener('DOMContentLoaded', () => {
 // Project listeners (design save/load)
     // Note: loadDesignInput removed - uses dynamic input creation
 
-    // Box-specific color picker
-    let activeBoxColorTarget = null;
-
-    const updateBoxColor = () => {
-        if (!activeBox) return;
-        activeBox.style.backgroundColor = boxBgColor.value;
-        activeBox.style.borderColor = boxBorderColor.value;
-        activeBox.style.setProperty('--box-bg', boxBgColor.value);
-        activeBox.style.setProperty('--box-border', boxBorderColor.value);
+    const boxStylePresets = {
+        clean: { bg: '#ffffff', color: '#0f1116', border: '#d8dee9', borderWidth: 1, padding: 12, radius: 12, shape: 'rectangle' },
+        glass: { bg: '#f8fafc', color: '#0f1116', border: '#ffffff', borderWidth: 1, padding: 14, radius: 20, shape: 'squircle' },
+        accent: { bg: '#ff6b3d', color: '#ffffff', border: '#ff6b3d', borderWidth: 0, padding: 12, radius: 999, shape: 'pill' },
+        outline: { bg: 'transparent', color: '#0f1116', border: '#0f1116', borderWidth: 2, padding: 10, radius: 8, shape: 'rectangle' },
+        dark: { bg: '#111827', color: '#f8fafc', border: '#374151', borderWidth: 1, padding: 12, radius: 14, shape: 'rectangle' }
     };
 
-    const updateActiveBoxColorPreview = () => {
+    function setRangeLabel(label, value) {
+        if (label) label.textContent = `${Math.round(Number(value) || 0)}px`;
+    }
+
+    function applyBoxShape(box, shape) {
+        if (!box) return;
+        box.classList.remove('box-shape-text', 'box-shape-rectangle', 'box-shape-square', 'box-shape-squircle', 'box-shape-pill', 'box-shape-circle');
+        box.dataset.boxShape = shape || 'default';
+        if (!shape || shape === 'default') return;
+        box.classList.add(`box-shape-${shape}`);
+        if (shape === 'text') {
+            box.style.backgroundColor = 'transparent';
+            box.style.borderWidth = '0px';
+            box.style.boxShadow = 'none';
+        }
+        if (shape === 'square' || shape === 'circle') {
+            const rect = box.getBoundingClientRect();
+            const size = Math.max(32, Math.round(Math.max(rect.width, rect.height) / (currentZoom || 1)));
+            box.style.width = `${size}px`;
+            box.style.height = `${size}px`;
+            if (shape === 'circle') box.style.borderRadius = '999px';
+        }
+        if (shape === 'squircle') box.style.borderRadius = '28px';
+        if (shape === 'pill') box.style.borderRadius = '999px';
+    }
+
+    function getActiveBoxStyle() {
+        return {
+            bg: boxBgColor?.value || '#f6f7fb',
+            color: boxTextColor?.value || '#0f1116',
+            border: boxBorderColor?.value || '#0a0a0a',
+            borderWidth: Number(boxBorderWidthInput?.value) || 0,
+            padding: Number(boxPaddingInput?.value) || 0,
+            radius: Number(boxRadiusInput?.value) || 0,
+            shape: boxShapeSelect?.value || 'default'
+        };
+    }
+
+    function applyBoxStyle(box, style) {
+        if (!box || !style) return;
+        box.classList.add('has-box-style');
+        box.style.backgroundColor = style.bg;
+        box.style.color = style.color;
+        box.style.borderColor = style.border;
+        box.style.borderStyle = style.borderWidth > 0 ? 'solid' : 'none';
+        box.style.borderWidth = `${style.borderWidth}px`;
+        box.style.padding = `${style.padding}px`;
+        box.style.borderRadius = `${style.radius}px`;
+        box.style.setProperty('--box-bg', style.bg);
+        box.style.setProperty('--box-color', style.color);
+        box.style.setProperty('--box-border', style.border);
+        box.style.setProperty('--box-padding', `${style.padding}px`);
+        box.style.setProperty('--box-radius', `${style.radius}px`);
+        applyBoxShape(box, style.shape);
+    }
+
+    const updateBoxStyle = () => {
+        if (!activeBox) return;
+        if (boxStylePreset) boxStylePreset.value = 'custom';
+        applyBoxStyle(activeBox, getActiveBoxStyle());
+    };
+
+    const updateActiveBoxStylePreview = () => {
         if (!activeBox) {
-            boxBgColor.value = '#f6f7fb';
-            boxBorderColor.value = '#0a0a0a';
+            if (boxBgColor) boxBgColor.value = '#f6f7fb';
+            if (boxTextColor) boxTextColor.value = '#0f1116';
+            if (boxBorderColor) boxBorderColor.value = '#0a0a0a';
+            if (boxPaddingInput) boxPaddingInput.value = 12;
+            if (boxRadiusInput) boxRadiusInput.value = 12;
+            if (boxBorderWidthInput) boxBorderWidthInput.value = 1;
+            if (boxShapeSelect) boxShapeSelect.value = 'default';
+            if (boxStylePreset) boxStylePreset.value = 'custom';
+            setRangeLabel(boxPaddingLbl, 12);
+            setRangeLabel(boxRadiusLbl, 12);
+            setRangeLabel(boxBorderWidthLbl, 1);
             return;
         }
-        const computedBg = getComputedStyle(activeBox).backgroundColor;
-        const computedBorder = getComputedStyle(activeBox).borderColor;
-        boxBgColor.value = rgbToHex(computedBg) || '#f6f7fb';
-        boxBorderColor.value = rgbToHex(computedBorder) || '#0a0a0a';
+        const computed = getComputedStyle(activeBox);
+        if (boxBgColor) boxBgColor.value = rgbToHex(computed.backgroundColor) || '#f6f7fb';
+        if (boxTextColor) boxTextColor.value = rgbToHex(computed.color) || '#0f1116';
+        if (boxBorderColor) boxBorderColor.value = rgbToHex(computed.borderColor) || '#0a0a0a';
+        const padding = parseFloat(activeBox.style.padding || computed.paddingTop) || 0;
+        const radius = parseFloat(activeBox.style.borderRadius || computed.borderTopLeftRadius) || 0;
+        const borderWidth = parseFloat(activeBox.style.borderWidth || computed.borderTopWidth) || 0;
+        if (boxPaddingInput) boxPaddingInput.value = Math.round(padding);
+        if (boxRadiusInput) boxRadiusInput.value = Math.min(80, Math.round(radius));
+        if (boxBorderWidthInput) boxBorderWidthInput.value = Math.round(borderWidth);
+        if (boxShapeSelect) boxShapeSelect.value = activeBox.dataset.boxShape || 'default';
+        if (boxStylePreset) boxStylePreset.value = 'custom';
+        setRangeLabel(boxPaddingLbl, padding);
+        setRangeLabel(boxRadiusLbl, radius);
+        setRangeLabel(boxBorderWidthLbl, borderWidth);
     };
 
 function rgbToHex(color) {
@@ -1814,15 +2041,58 @@ function rgbToHex(color) {
         }
     }
 
-    boxBgColor.addEventListener('input', updateBoxColor);
-    boxBorderColor.addEventListener('input', updateBoxColor);
+    [boxBgColor, boxTextColor, boxBorderColor, boxPaddingInput, boxRadiusInput, boxBorderWidthInput, boxShapeSelect].forEach((control) => {
+        if (!control) return;
+        control.addEventListener('input', () => {
+            setRangeLabel(boxPaddingLbl, boxPaddingInput?.value || 0);
+            setRangeLabel(boxRadiusLbl, boxRadiusInput?.value || 0);
+            setRangeLabel(boxBorderWidthLbl, boxBorderWidthInput?.value || 0);
+            updateBoxStyle();
+        });
+        control.addEventListener('change', updateBoxStyle);
+    });
+    if (boxStylePreset) {
+        boxStylePreset.addEventListener('change', () => {
+            const preset = boxStylePresets[boxStylePreset.value];
+            if (!preset || !activeBox) return;
+            if (boxBgColor) boxBgColor.value = preset.bg === 'transparent' ? '#ffffff' : preset.bg;
+            if (boxTextColor) boxTextColor.value = preset.color;
+            if (boxBorderColor) boxBorderColor.value = preset.border;
+            if (boxPaddingInput) boxPaddingInput.value = preset.padding;
+            if (boxRadiusInput) boxRadiusInput.value = Math.min(80, preset.radius);
+            if (boxBorderWidthInput) boxBorderWidthInput.value = preset.borderWidth;
+            if (boxShapeSelect) boxShapeSelect.value = preset.shape;
+            setRangeLabel(boxPaddingLbl, preset.padding);
+            setRangeLabel(boxRadiusLbl, preset.radius);
+            setRangeLabel(boxBorderWidthLbl, preset.borderWidth);
+            applyBoxStyle(activeBox, preset);
+        });
+    }
+    if (applyBoxStyleAllBtn) {
+        applyBoxStyleAllBtn.addEventListener('click', () => {
+            const style = getActiveBoxStyle();
+            cvPages.querySelectorAll('.draggable-box').forEach((box) => applyBoxStyle(box, style));
+        });
+    }
     clearBoxStyleBtn.addEventListener('click', () => {
         if (activeBox) {
             activeBox.style.backgroundColor = '';
+            activeBox.style.color = '';
             activeBox.style.borderColor = '';
+            activeBox.style.borderStyle = '';
+            activeBox.style.borderWidth = '';
+            activeBox.style.padding = '';
+            activeBox.style.borderRadius = '';
+            activeBox.style.boxShadow = '';
             activeBox.style.removeProperty('--box-bg');
+            activeBox.style.removeProperty('--box-color');
             activeBox.style.removeProperty('--box-border');
-            updateActiveBoxColorPreview();
+            activeBox.style.removeProperty('--box-padding');
+            activeBox.style.removeProperty('--box-radius');
+            activeBox.classList.remove('box-shape-text', 'box-shape-rectangle', 'box-shape-square', 'box-shape-squircle', 'box-shape-pill', 'box-shape-circle');
+            activeBox.classList.remove('has-box-style');
+            delete activeBox.dataset.boxShape;
+            updateActiveBoxStylePreview();
         }
     });
 
@@ -1830,7 +2100,7 @@ function rgbToHex(color) {
     const originalSetActiveBox = setActiveBox;
     setActiveBox = (box) => {
         originalSetActiveBox(box);
-        updateActiveBoxColorPreview();
+        updateActiveBoxStylePreview();
     };
 
     function syncInputs() {
@@ -1876,6 +2146,84 @@ function rgbToHex(color) {
         reader.readAsDataURL(file);
     }
 
+    function loadImageForCanvas(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('Kunde inte läsa bild för PDF-komprimering.'));
+            img.src = src;
+        });
+    }
+
+    async function compressImageForPdf(src, maxEdge = 900, quality = 0.74) {
+        if (!src || !src.startsWith('data:image/') || src.startsWith('data:image/svg')) return '';
+        const img = await loadImageForCanvas(src);
+        const sourceW = img.naturalWidth || img.width;
+        const sourceH = img.naturalHeight || img.height;
+        if (!sourceW || !sourceH) return '';
+        const scale = Math.min(1, maxEdge / Math.max(sourceW, sourceH));
+        const width = Math.max(1, Math.round(sourceW * scale));
+        const height = Math.max(1, Math.round(sourceH * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', quality);
+        return compressed.length < src.length ? compressed : '';
+    }
+
+    function createLiquidGlassPdfBackground(accentRgb, accent2Rgb, isA3) {
+        const width = isA3 ? 980 : 820;
+        const height = Math.round(width * Math.SQRT2);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        const base = ctx.createLinearGradient(0, 0, width, height);
+        base.addColorStop(0, '#f8fbff');
+        base.addColorStop(0.48, '#eef7ff');
+        base.addColorStop(1, '#fbf7ff');
+        ctx.fillStyle = base;
+        ctx.fillRect(0, 0, width, height);
+
+        const paintFade = (x, y, radius, color) => {
+            const fade = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            fade.addColorStop(0, color);
+            fade.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = fade;
+            ctx.fillRect(0, 0, width, height);
+        };
+        paintFade(width * 0.18, height * 0.12, width * 0.55, `rgba(${accentRgb}, 0.18)`);
+        paintFade(width * 0.88, height * 0.88, width * 0.58, `rgba(${accent2Rgb}, 0.15)`);
+        paintFade(width * 0.58, height * 0.94, width * 0.42, 'rgba(255,255,255,0.58)');
+        return canvas.toDataURL('image/jpeg', 0.72);
+    }
+
+    async function prepareCompressedPdfAssets(isLiquidGlass, accentRgb, accent2Rgb, isA3) {
+        const restore = [];
+        const images = Array.from(cvPages.querySelectorAll('img'));
+        for (const img of images) {
+            const src = img.currentSrc || img.src || '';
+            const maxEdge = img.closest('.project-thumb') ? 360 : img.closest('.profile-photo') ? 640 : 900;
+            try {
+                const compressed = await compressImageForPdf(src, maxEdge, 0.74);
+                if (compressed) {
+                    restore.push(() => { img.src = src; });
+                    img.src = compressed;
+                }
+            } catch (err) {
+                console.warn('PDF image compression skipped', err);
+            }
+        }
+        return {
+            liquidBackground: isLiquidGlass ? createLiquidGlassPdfBackground(accentRgb, accent2Rgb, isA3) : '',
+            restore: () => restore.reverse().forEach(fn => fn())
+        };
+    }
+
     templateGrid.addEventListener('click', (event) => {
         const button = event.target.closest('[data-template]');
         if (!button) return;
@@ -1893,9 +2241,7 @@ function rgbToHex(color) {
 
     layoutSelect.addEventListener('change', () => applyCvClass(layoutSelect.value, 'layout-'));
     paletteSelect.addEventListener('change', () => {
-        applyCvClass(paletteSelect.value, 'palette-');
-        clearInlineColorVars();
-        syncColorPickersFromPalette(paletteSelect.value);
+        applyPalette(paletteSelect.value);
     });
     fontSelect.addEventListener('change', () => applyCvClass(fontSelect.value, 'font-'));
     backgroundSelect.addEventListener('change', () => applyCvClass(backgroundSelect.value, 'bg-'));
@@ -1912,7 +2258,7 @@ function rgbToHex(color) {
             page.style.setProperty('--cv-surface', cvSurfaceColor.value);
             page.style.setProperty('--cv-text', cvTextColor.value);
             page.style.setProperty('--cv-muted', cvMutedColor.value);
-            page.style.setProperty('--cv-accent', cvPrimaryColor.value);
+            page.style.setProperty('--cv-accent', accentColorInput.value || cvPrimaryColor.value);
             page.style.setProperty('--cv-accent-2', cvSecondaryColor.value);
         });
     };
@@ -2262,9 +2608,17 @@ function rgbToHex(color) {
         }
     });
 
-    exportPdfBtn.addEventListener('click', () => {
+    exportPdfBtn.addEventListener('click', async () => {
         // Scroll to top for proper PDF positioning
         window.scrollTo(0, 0);
+        const originalLabel = exportPdfBtn.textContent;
+        exportPdfBtn.textContent = 'Komprimerar PDF...';
+        exportPdfBtn.disabled = true;
+        const isA3 = formatSelect.value === 'a3';
+        const cvW = isA3 ? '297mm' : '210mm';
+        const cvH = isA3 ? '420mm' : '297mm';
+        const pageSize = isA3 ? 'A3 portrait' : 'A4 portrait';
+        const safeName = (state.profile.name || 'CV').trim().replace(/\s+/g, '_');
         
         const styleId = 'dynamic-print-style';
         let styleEl = document.getElementById(styleId);
@@ -2273,56 +2627,250 @@ function rgbToHex(color) {
             styleEl.id = styleId;
             document.head.appendChild(styleEl);
         }
-        const isA3 = formatSelect.value === 'a3';
-        const cvW = isA3 ? '297mm' : '210mm';
-        const cvH = isA3 ? '420mm' : '297mm';
-        const pageSize = isA3 ? 'A3 portrait' : 'A4 portrait';
+        const samplePage = Array.from(cvPages.querySelectorAll('.cv')).find((page) => !page.classList.contains('is-hidden')) || cv;
+        const freezeComputed = (selector, element, props) => {
+            if (!element) return '';
+            const styles = getComputedStyle(element);
+            const declarations = props
+                .map((prop) => {
+                    let value = styles.getPropertyValue(prop);
+                    if (prop === 'padding') value = `${styles.paddingTop} ${styles.paddingRight} ${styles.paddingBottom} ${styles.paddingLeft}`;
+                    if (prop === 'margin') value = `${styles.marginTop} ${styles.marginRight} ${styles.marginBottom} ${styles.marginLeft}`;
+                    return value ? `${prop}: ${value} !important;` : '';
+                })
+                .filter(Boolean)
+                .join('\n');
+            return declarations ? `${selector} {\n${declarations}\n}` : '';
+        };
+        const colorToRgbParts = (color, fallback) => {
+            const probe = document.createElement('span');
+            probe.style.color = color || fallback;
+            document.body.appendChild(probe);
+            const computed = getComputedStyle(probe).color;
+            probe.remove();
+            const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            return match ? `${match[1]}, ${match[2]}, ${match[3]}` : fallback;
+        };
+        const accentRgb = colorToRgbParts(accentColorInput?.value || cvPrimaryColor?.value, '125, 211, 252');
+        const accent2Rgb = colorToRgbParts(cvSecondaryColor?.value, '192, 132, 252');
+        const isLiquidGlassExport = samplePage?.classList.contains('template-liquid-glass');
+        const pdfAssets = await prepareCompressedPdfAssets(isLiquidGlassExport, accentRgb, accent2Rgb, isA3);
+        const liquidGlassPrintLock = samplePage?.classList.contains('template-liquid-glass') ? `
+                .template-liquid-glass {
+                    background: #f8fbff url("${pdfAssets.liquidBackground}") center / cover no-repeat !important;
+                }
+                .template-liquid-glass::before,
+                .template-liquid-glass::after,
+                .template-liquid-glass .cv-bg-shape,
+                .template-liquid-glass .cv-bg-shape-alt {
+                    display: none !important;
+                }
+                .template-liquid-glass .cv-header,
+                .template-liquid-glass .profile-photo,
+                .template-liquid-glass .entry,
+                .template-liquid-glass .project-card,
+                .template-liquid-glass .tool-chip,
+                .template-liquid-glass .social-link,
+                .template-liquid-glass .qr-card,
+                .template-liquid-glass .contact-item,
+                .template-liquid-glass .editable-block {
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
+                    filter: none !important;
+                    border-color: rgba(185, 199, 218, 0.72) !important;
+                    box-shadow:
+                        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+                        inset 0 -22px 34px rgba(${accentRgb}, 0.14),
+                        0 20px 48px rgba(15, 23, 42, 0.12) !important;
+                }
+                .template-liquid-glass .tool-chip,
+                .template-liquid-glass .social-link,
+                .template-liquid-glass .contact-item {
+                    box-shadow:
+                        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+                        0 10px 24px rgba(15, 23, 42, 0.10) !important;
+                }
+                .template-liquid-glass.cv-page-2 {
+                    padding-right: 18mm !important;
+                }
+                .template-liquid-glass.cv-page-2 .cv-grid {
+                    padding-right: 0 !important;
+                    box-sizing: border-box !important;
+                    min-width: 0 !important;
+                }
+                .template-liquid-glass.cv-page-2 .cv-main,
+                .template-liquid-glass.cv-page-2 .cv-side {
+                    min-width: 0 !important;
+                }
+                .template-liquid-glass.cv-page-2 .cv-header,
+                .template-liquid-glass.cv-page-2 .editable-block,
+                .template-liquid-glass.cv-page-2 .entry,
+                .template-liquid-glass.cv-page-2 .project-card,
+                .template-liquid-glass.cv-page-2 .qr-card {
+                    box-shadow:
+                        inset 0 1px 0 rgba(255, 255, 255, 0.90),
+                        inset 0 -14px 24px rgba(${accentRgb}, 0.11),
+                        0 12px 28px rgba(15, 23, 42, 0.11) !important;
+                }
+                .template-liquid-glass .title-pill {
+                    background: transparent !important;
+                    border-color: transparent !important;
+                    box-shadow: none !important;
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
+                }
+                .template-liquid-glass .meter-dot,
+                .template-liquid-glass .meter-star,
+                .template-liquid-glass .meter-dot.active,
+                .template-liquid-glass .meter-star.active {
+                    box-shadow: none !important;
+                    filter: none !important;
+                }
+                .template-liquid-glass .meter-dot.active,
+                .template-liquid-glass .meter-star.active {
+                    background: var(--cv-accent) !important;
+                    border-color: var(--cv-accent) !important;
+                }
+        ` : '';
+        const editorPrintLock = [
+            freezeComputed('.cv', samplePage, ['padding', 'gap', 'font-size', 'line-height']),
+            freezeComputed('.cv-header', samplePage?.querySelector('.cv-header'), ['gap', 'padding', 'border-radius']),
+            freezeComputed('.cv-grid', samplePage?.querySelector('.cv-grid'), ['gap', 'grid-template-columns']),
+            freezeComputed('.cv-main', samplePage?.querySelector('.cv-main'), ['gap']),
+            freezeComputed('.cv-side', samplePage?.querySelector('.cv-side'), ['gap']),
+            freezeComputed('#cv-name', samplePage?.querySelector('#cv-name'), ['font-size', 'line-height', 'letter-spacing']),
+            freezeComputed('.page-title', samplePage?.querySelector('.page-title'), ['font-size', 'line-height', 'letter-spacing']),
+            freezeComputed('.cv-section h3', samplePage?.querySelector('.cv-section h3'), ['font-size', 'line-height', 'letter-spacing', 'margin-bottom']),
+            freezeComputed('.cv-tagline, .page-subtitle, .entry-description, .editable-block', samplePage?.querySelector('.cv-tagline, .page-subtitle, .entry-description, .editable-block'), ['font-size', 'line-height']),
+            freezeComputed('.entry-title, .project-title, .skill-name', samplePage?.querySelector('.entry-title, .project-title, .skill-name'), ['font-size', 'line-height']),
+            freezeComputed('.entry-meta, .project-link', samplePage?.querySelector('.entry-meta, .project-link'), ['font-size', 'line-height']),
+            freezeComputed('.entry', samplePage?.querySelector('.entry'), ['padding', 'gap', 'border-radius', 'margin-bottom']),
+            freezeComputed('.project-card', samplePage?.querySelector('.project-card'), ['padding', 'gap', 'border-radius', 'margin-bottom', 'grid-template-columns']),
+            freezeComputed('.tool-chip, .social-link, .contact-item', samplePage?.querySelector('.tool-chip, .social-link, .contact-item'), ['padding', 'gap', 'border-radius']),
+            freezeComputed('.profile-photo', samplePage?.querySelector('.profile-photo'), ['width', 'height', 'margin-top', 'border-radius'])
+        ].filter(Boolean).join('\n');
         styleEl.innerHTML = `
             @page { margin: 0; size: ${pageSize}; }
-            html, body {
-                margin: 0 !important;
-                padding: 0 !important;
-                background: white !important;
+            @media print {
+                *,
+                *::before,
+                *::after {
+                    print-color-adjust: exact !important;
+                    -webkit-print-color-adjust: exact !important;
+                }
+                html,
+                body {
+                    width: ${cvW} !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: white !important;
+                    overflow: visible !important;
+                }
+                .no-print,
+                .box-resize-handle,
+                .box-drag-handle,
+                .box-delete-btn,
+                .page-breaker-line {
+                    display: none !important;
+                }
+                .app-container {
+                    display: block !important;
+                    width: ${cvW} !important;
+                    min-height: 0 !important;
+                    height: auto !important;
+                    overflow: visible !important;
+                    background: white !important;
+                }
+                .app-workspace,
+                .canvas-area,
+                .cv-wrapper,
+                .cv-pages {
+                    display: block !important;
+                    width: ${cvW} !important;
+                    min-height: 0 !important;
+                    height: auto !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: visible !important;
+                    background: transparent !important;
+                }
+                .cv-wrapper {
+                    transform: none !important;
+                    transform-origin: top left !important;
+                }
+                .cv-pages {
+                    gap: 0 !important;
+                    align-items: stretch !important;
+                    --page-gap: 0px !important;
+                }
+                .cv-pages.has-page-2 > .cv:first-of-type:not(.is-hidden) {
+                    margin-bottom: 0 !important;
+                }
+                .cv {
+                    box-sizing: border-box !important;
+                    box-shadow: none !important;
+                    width: ${cvW} !important;
+                    min-width: ${cvW} !important;
+                    max-width: ${cvW} !important;
+                    height: ${cvH} !important;
+                    min-height: ${cvH} !important;
+                    max-height: ${cvH} !important;
+                    margin: 0 !important;
+                    break-inside: avoid !important;
+                    page-break-inside: avoid !important;
+                    break-after: page !important;
+                    page-break-after: always !important;
+                    overflow: visible !important;
+                    clip-path: inset(0 -14mm 0 0) !important;
+                    animation: none !important;
+                }
+                .cv-header,
+                .cv-grid,
+                .cv-main,
+                .cv-side,
+                .cv-section {
+                    overflow: visible !important;
+                }
+                .cv:last-child {
+                    break-after: auto !important;
+                    page-break-after: auto !important;
+                }
+                .cv-page-2.is-hidden {
+                    display: none !important;
+                }
+                .cv-bg-shape,
+                .cv-bg-shape-alt,
+                .cv::before,
+                .cv::after {
+                    display: block !important;
+                }
+                ${editorPrintLock}
+                ${liquidGlassPrintLock}
             }
-            .no-print { display: none !important; }
-            .app-container {
-                display: block !important;
-                width: ${cvW} !important;
-                height: auto !important;
-                overflow: visible !important;
-            }
-            .app-workspace {
-                display: block !important;
-                overflow: visible !important;
-            }
-            .canvas-area {
-                display: block !important;
-                padding: 0 !important;
-                overflow: visible !important;
-                background: none !important;
-            }
-            .cv-wrapper {
-                transform: none !important;
-                display: block !important;
-            }
-            .cv-pages {
-                display: block !important;
-                gap: 0 !important;
-            }
-            .cv {
-                box-shadow: none !important;
-                width: ${cvW} !important;
-                height: ${cvH} !important;
-                margin: 0 !important;
-                page-break-after: always !important;
-            }
-            .cv:last-child { page-break-after: auto !important; }
-            .cv-page-2.is-hidden { display: none !important; }
         `;
 
-        const safeName = (state.profile.name || 'CV').trim().replace(/\s+/g, '_');
+        const previousTitle = document.title;
+        let exportCleaned = false;
+        const cleanupPrintStyle = () => {
+            if (exportCleaned) return;
+            exportCleaned = true;
+            document.title = previousTitle;
+            exportPdfBtn.textContent = originalLabel;
+            exportPdfBtn.disabled = false;
+            pdfAssets.restore();
+            styleEl.remove();
+            window.removeEventListener('afterprint', cleanupPrintStyle);
+        };
+        window.addEventListener('afterprint', cleanupPrintStyle);
         document.title = `${safeName}_CV.pdf`;
-        window.print();
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+                if (document.getElementById(styleId)) {
+                    cleanupPrintStyle();
+                }
+            }, 1200);
+        }, 60);
     });
 
     exportPngBtn.addEventListener('click', async () => {
@@ -2409,9 +2957,7 @@ function rgbToHex(color) {
         btn.addEventListener('click', () => {
             const pal = btn.dataset.palette;
             if (paletteSelect) paletteSelect.value = pal;
-            applyCvClass(pal, 'palette-');
-            clearInlineColorVars();
-            syncColorPickersFromPalette(pal);
+            applyPalette(pal);
             syncPaletteSwatches(pal);
         });
     });
@@ -2642,6 +3188,7 @@ function rgbToHex(color) {
         if (paletteSelect) syncPaletteSwatches(paletteSelect.value);
         renderEditors();
         renderAll();
+        ensurePage2SectionIds();
         ensureFreeLayers();
         ensurePageBreaker();
         autoFitZoom();

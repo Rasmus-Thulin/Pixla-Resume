@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Broadcast CV Creator</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="style.css">
     <script src="html2canvas.min.js"></script>
 </head>
@@ -60,6 +61,10 @@
                     <span class="tmpl-prev neon"></span>
                     <span class="tmpl-name">Neon</span>
                 </button>
+                <button class="tmpl-card" data-template="template-liquid-glass">
+                    <span class="tmpl-prev liquid-glass"></span>
+                    <span class="tmpl-name">Liquid Glass</span>
+                </button>
                 <button class="tmpl-card" data-template="template-retro">
                     <span class="tmpl-prev retro"></span>
                     <span class="tmpl-name">Retro</span>
@@ -94,7 +99,7 @@
             </select>
             <div class="topbar-zoom-group">
                 <button id="zoom-out" class="zoom-ctrl-btn" title="Zooma ut">−</button>
-                <span id="zoom-level" class="zoom-level-lbl">70%</span>
+                <span id="zoom-level" class="zoom-level-lbl">58%</span>
                 <button id="zoom-in" class="zoom-ctrl-btn" title="Zooma in">+</button>
             </div>
         </div>
@@ -270,9 +275,58 @@
                                 <input type="color" id="box-background-color" value="#f6f7fb">
                             </div>
                             <div class="color-field">
-                                <label class="mini-label">Ramfärg</label>
+                                <label class="mini-label">Text</label>
+                                <input type="color" id="box-text-color" value="#0f1116">
+                            </div>
+                            <div class="color-field">
+                                <label class="mini-label">Linjefärg</label>
                                 <input type="color" id="box-border-color" value="#0a0a0a">
                             </div>
+                        </div>
+                        <div class="box-style-controls">
+                            <label class="mini-label">Förval</label>
+                            <select id="box-style-preset">
+                                <option value="custom">Anpassad</option>
+                                <option value="clean">Clean</option>
+                                <option value="glass">Glass</option>
+                                <option value="accent">Accent</option>
+                                <option value="outline">Outline</option>
+                                <option value="dark">Dark</option>
+                            </select>
+
+                            <label class="mini-label">Form</label>
+                            <select id="box-shape-select">
+                                <option value="default">Standard</option>
+                                <option value="text">Text</option>
+                                <option value="rectangle">Rektangel</option>
+                                <option value="square">Kvadrat</option>
+                                <option value="squircle">Squircle</option>
+                                <option value="pill">Piller</option>
+                                <option value="circle">Cirkel</option>
+                            </select>
+
+                            <div class="box-style-row">
+                                <div>
+                                    <label class="mini-label">Padding</label>
+                                    <input type="range" id="box-padding-input" min="0" max="40" step="1" value="12">
+                                </div>
+                                <span id="box-padding-lbl">12px</span>
+                            </div>
+                            <div class="box-style-row">
+                                <div>
+                                    <label class="mini-label">Radius</label>
+                                    <input type="range" id="box-radius-input" min="0" max="80" step="1" value="12">
+                                </div>
+                                <span id="box-radius-lbl">12px</span>
+                            </div>
+                            <div class="box-style-row">
+                                <div>
+                                    <label class="mini-label">Linjebredd</label>
+                                    <input type="range" id="box-border-width-input" min="0" max="8" step="1" value="1">
+                                </div>
+                                <span id="box-border-width-lbl">1px</span>
+                            </div>
+                            <button class="panel-mini-btn" id="apply-box-style-all-btn" type="button">Applicera på alla boxar</button>
                         </div>
                     </div>
                 </div>
@@ -400,6 +454,18 @@
                             <option value="bg-dark-prism">Dark Prism</option>
                             <option value="bg-dark-studio">Dark Studio</option>
                         </select>
+                        <label class="mini-label" style="margin-top:8px">Bakgrundsbild</label>
+                        <div class="field-row">
+                            <input type="text" id="background-image-url-input" placeholder="Bild-URL">
+                            <button class="panel-mini-btn" id="background-image-upload-btn" type="button">Välj</button>
+                        </div>
+                        <input type="file" id="background-image-file-input" accept="image/*" style="display:none">
+                        <div class="field-row" style="align-items:center;gap:8px">
+                            <label class="mini-label" style="white-space:nowrap">Bildstyrka</label>
+                            <input type="range" id="background-image-opacity-input" min="0" max="100" value="72" style="flex:1">
+                            <span id="background-image-opacity-lbl" style="min-width:38px;font-size:0.75rem;color:var(--ui-muted,#888);text-align:right">72%</span>
+                        </div>
+                        <button class="panel-mini-btn" id="clear-background-image-btn" type="button">Ta bort bakgrundsbild</button>
                     </div>
 
                     <div class="panel-section">
@@ -562,7 +628,7 @@
     <footer class="app-statusbar no-print">
         <span id="status-selection-info" class="status-item">Inget element valt — klicka i canvas</span>
         <span class="status-divider">|</span>
-        <span id="status-zoom-info" class="status-item">Zoom: 70%</span>
+        <span id="status-zoom-info" class="status-item">Zoom: 58%</span>
     </footer>
 
 </div><!-- /app-container -->
