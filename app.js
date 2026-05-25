@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const boxRadiusLbl = document.getElementById('box-radius-lbl');
     const boxBorderWidthInput = document.getElementById('box-border-width-input');
     const boxBorderWidthLbl = document.getElementById('box-border-width-lbl');
+    const boxBoldInput = document.getElementById('box-bold-input');
     const applyBoxStyleAllBtn = document.getElementById('apply-box-style-all-btn');
     const clearBoxStyleBtn = document.getElementById('clear-box-style-btn');
     const templateGrid = document.getElementById('template-grid');
@@ -49,6 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const phoneInput = document.getElementById('phone-input');
     const locationInput = document.getElementById('location-input');
     const websiteInput = document.getElementById('website-input');
+    const emailLabelInput = document.getElementById('email-label-input');
+    const phoneLabelInput = document.getElementById('phone-label-input');
+    const locationLabelInput = document.getElementById('location-label-input');
+    const websiteLabelInput = document.getElementById('website-label-input');
     const taglineInput = document.getElementById('tagline-input');
     const portfolioInput = document.getElementById('portfolio-input');
     const generateQrBtn = document.getElementById('generate-qr-btn');
@@ -168,6 +173,20 @@ document.addEventListener('DOMContentLoaded', () => {
             tiktok: '@johndoe',
             youtube: 'youtube.com/@johndoe',
             vimeo: 'vimeo.com/johndoe'
+        },
+        contactLabels: {
+            email: 'E-post',
+            phone: 'Telefon',
+            location: 'Plats',
+            website: 'Webb'
+        },
+        socialIcons: {
+            linkedin: 'linkedin',
+            behance: 'behance',
+            instagram: 'instagram',
+            tiktok: 'tiktok',
+            youtube: 'youtube',
+            vimeo: 'vimeo'
         },
         experience: [
             {
@@ -447,18 +466,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateContact() {
         const items = [];
+        const label = (field, fallback) => escapeHtml(state.contactLabels?.[field] || fallback);
         if (state.profile.email) {
-            items.push(`<a class="contact-item" href="mailto:${escapeHtml(state.profile.email)}"><span>E-post</span><span class="editable" contenteditable="true" data-section="profile" data-field="email">${escapeHtml(state.profile.email)}</span></a>`);
+            items.push(`<a class="contact-item" href="mailto:${escapeHtml(state.profile.email)}"><span class="editable" contenteditable="true" data-section="contactLabels" data-field="email">${label('email', 'E-post')}</span><span class="editable" contenteditable="true" data-section="profile" data-field="email">${escapeHtml(state.profile.email)}</span></a>`);
         }
         if (state.profile.phone) {
-            items.push(`<div class="contact-item"><span>Telefon</span><span class="editable" contenteditable="true" data-section="profile" data-field="phone">${escapeHtml(state.profile.phone)}</span></div>`);
+            items.push(`<div class="contact-item"><span class="editable" contenteditable="true" data-section="contactLabels" data-field="phone">${label('phone', 'Telefon')}</span><span class="editable" contenteditable="true" data-section="profile" data-field="phone">${escapeHtml(state.profile.phone)}</span></div>`);
         }
         if (state.profile.location) {
-            items.push(`<div class="contact-item"><span>Plats</span><span class="editable" contenteditable="true" data-section="profile" data-field="location">${escapeHtml(state.profile.location)}</span></div>`);
+            items.push(`<div class="contact-item"><span class="editable" contenteditable="true" data-section="contactLabels" data-field="location">${label('location', 'Plats')}</span><span class="editable" contenteditable="true" data-section="profile" data-field="location">${escapeHtml(state.profile.location)}</span></div>`);
         }
         if (state.profile.website) {
             const url = normalizeUrl(state.profile.website);
-            items.push(`<a class="contact-item" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>Webb</span><span class="editable" contenteditable="true" data-section="profile" data-field="website">${escapeHtml(state.profile.website)}</span></a>`);
+            items.push(`<a class="contact-item" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span class="editable" contenteditable="true" data-section="contactLabels" data-field="website">${label('website', 'Webb')}</span><span class="editable" contenteditable="true" data-section="profile" data-field="website">${escapeHtml(state.profile.website)}</span></a>`);
         }
         cvContact.innerHTML = items.join('');
         scheduleBoxRefresh();
@@ -814,24 +834,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSocials() {
         const entries = [
-            { key: 'linkedin', label: 'LinkedIn', icon: 'Li' },
-            { key: 'behance', label: 'Behance', icon: 'Be' },
-            { key: 'instagram', label: 'Instagram', icon: 'Ig' },
-            { key: 'tiktok', label: 'TikTok', icon: 'Tk' },
-            { key: 'youtube', label: 'YouTube', icon: 'Yt' },
-            { key: 'vimeo', label: 'Vimeo', icon: 'Vm' }
+            { key: 'linkedin', label: 'Rad 1' },
+            { key: 'behance', label: 'Rad 2' },
+            { key: 'instagram', label: 'Rad 3' },
+            { key: 'tiktok', label: 'Rad 4' },
+            { key: 'youtube', label: 'Rad 5' },
+            { key: 'vimeo', label: 'Rad 6' }
         ];
         const html = entries
             .filter((entry) => state.socials[entry.key])
             .map((entry) => {
                 const raw = state.socials[entry.key];
-                const url = normalizeSocialUrl(entry.key, raw);
-                return `<a class="social-link editable" contenteditable="true" data-section="socials" data-field="${entry.key}" data-icon="${entry.icon}" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span class="social-icon" contenteditable="false" aria-hidden="true">${socialSvgIcon(entry.key)}</span><span>${escapeHtml(raw)}</span></a>`;
+                const iconKey = getSocialIconKey(entry.key);
+                const url = normalizeSocialUrl(iconKey, raw);
+                return `<a class="social-link editable" contenteditable="true" data-section="socials" data-field="${entry.key}" data-icon-key="${escapeHtml(iconKey)}" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span class="social-icon" contenteditable="false" aria-hidden="true">${socialSvgIcon(iconKey)}</span><span>${escapeHtml(raw)}</span></a>`;
             })
             .join('');
         cvSocialsList.innerHTML = html;
         updateSectionVisibility(sectionSocials, entries.filter((entry) => state.socials[entry.key]));
         scheduleBoxRefresh();
+    }
+
+    function getSocialIconKey(rowKey) {
+        return state.socialIcons?.[rowKey] || rowKey || 'web';
     }
 
     function socialSvgIcon(platform) {
@@ -841,9 +866,10 @@ document.addEventListener('DOMContentLoaded', () => {
             instagram: '<svg viewBox="0 0 24 24" focusable="false"><path d="M8 4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Zm0 2.2A1.8 1.8 0 0 0 6.2 8v8A1.8 1.8 0 0 0 8 17.8h8a1.8 1.8 0 0 0 1.8-1.8V8A1.8 1.8 0 0 0 16 6.2H8Zm4 2.8a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm4.4-1.1a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6Z"/></svg>',
             tiktok: '<svg viewBox="0 0 24 24" focusable="false"><path d="M14.6 4c.4 2.3 1.7 3.7 3.9 3.9v3a6.8 6.8 0 0 1-3.8-1.2v4.8c0 3-2.1 5.1-5.1 5.1A4.9 4.9 0 0 1 4.5 15c0-3.1 2.7-5.4 5.9-4.8v3.1c-1.5-.5-2.8.4-2.8 1.7 0 1.1.9 1.8 1.9 1.8 1.2 0 2-.7 2-2.2V4h3.1Z"/></svg>',
             youtube: '<svg viewBox="0 0 24 24" focusable="false"><path d="M20.6 7.4c.3 1.2.3 4.6.3 4.6s0 3.4-.3 4.6a2.4 2.4 0 0 1-1.7 1.7c-1.2.3-6.9.3-6.9.3s-5.7 0-6.9-.3a2.4 2.4 0 0 1-1.7-1.7C3.1 15.4 3.1 12 3.1 12s0-3.4.3-4.6a2.4 2.4 0 0 1 1.7-1.7c1.2-.3 6.9-.3 6.9-.3s5.7 0 6.9.3a2.4 2.4 0 0 1 1.7 1.7ZM10.3 14.7l4.7-2.7-4.7-2.7v5.4Z"/></svg>',
-            vimeo: '<svg viewBox="0 0 24 24" focusable="false"><path d="M21 8.2c-.1 2.6-1.9 6.1-5.4 10.3-1.4 1.7-2.7 2.6-3.8 2.6-1.3 0-2.4-1.2-3.3-3.6l-1.8-6.2c-.7-2.4-1.4-3.6-2.1-3.6-.2 0-.7.3-1.6.9L2 7.3l3.1-2.8c1.4-1.2 2.5-1.8 3.2-1.9 1.7-.2 2.7 1 3.1 3.5.4 2.7.7 4.4.9 5 .5 2.1 1.1 3.2 1.7 3.2.5 0 1.2-.8 2.1-2.3.9-1.5 1.4-2.7 1.5-3.5.1-1.3-.4-2-1.5-2-.5 0-1 .1-1.6.4 1.1-3.5 3.1-5.2 6.1-5.1 2.2.1 3.2 1.5 3.1 4.4Z"/></svg>'
+            vimeo: '<svg viewBox="0 0 24 24" focusable="false"><path d="M21 8.2c-.1 2.6-1.9 6.1-5.4 10.3-1.4 1.7-2.7 2.6-3.8 2.6-1.3 0-2.4-1.2-3.3-3.6l-1.8-6.2c-.7-2.4-1.4-3.6-2.1-3.6-.2 0-.7.3-1.6.9L2 7.3l3.1-2.8c1.4-1.2 2.5-1.8 3.2-1.9 1.7-.2 2.7 1 3.1 3.5.4 2.7.7 4.4.9 5 .5 2.1 1.1 3.2 1.7 3.2.5 0 1.2-.8 2.1-2.3.9-1.5 1.4-2.7 1.5-3.5.1-1.3-.4-2-1.5-2-.5 0-1 .1-1.6.4 1.1-3.5 3.1-5.2 6.1-5.1 2.2.1 3.2 1.5 3.1 4.4Z"/></svg>',
+            web: '<svg viewBox="0 0 24 24" focusable="false"><path d="M12 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm5.6 7h-3.1a12 12 0 0 0-.8-4 6.1 6.1 0 0 1 3.9 4ZM12 6.1c.5.8 1.1 2.4 1.2 4.9h-2.4c.1-2.5.7-4.1 1.2-4.9ZM6.4 13h3.1c.1 1.5.4 2.9.8 4a6.1 6.1 0 0 1-3.9-4Zm3.1-2H6.4a6.1 6.1 0 0 1 3.9-4 12 12 0 0 0-.8 4Zm2.5 6.9c-.5-.8-1.1-2.4-1.2-4.9h2.4c-.1 2.5-.7 4.1-1.2 4.9Zm1.7-.9c.4-1.1.7-2.5.8-4h3.1a6.1 6.1 0 0 1-3.9 4Z"/></svg>'
         };
-        return icons[platform] || '<svg viewBox="0 0 24 24" focusable="false"><path d="M12 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16Zm-1 4v5.2l4.4 2.6.9-1.5-3.5-2.1V8H11Z"/></svg>';
+        return icons[platform] || icons.web;
     }
 
     function updateSkillMeters(skillItem, level) {
@@ -911,6 +937,19 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             if (inputMap[field]) inputMap[field].value = '';
             renderSocials();
+            return true;
+        }
+
+        if (section === 'contactLabels' && field) {
+            state.contactLabels[field] = '';
+            const inputMap = {
+                email: emailLabelInput,
+                phone: phoneLabelInput,
+                location: locationLabelInput,
+                website: websiteLabelInput
+            };
+            if (inputMap[field]) inputMap[field].value = '';
+            updateContact();
             return true;
         }
 
@@ -1129,7 +1168,18 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             if (inputMap[field]) inputMap[field].value = rawValue;
             const anchor = target.closest('a');
-            if (anchor) anchor.href = normalizeSocialUrl(field, rawValue);
+            if (anchor) anchor.href = normalizeSocialUrl(getSocialIconKey(field), rawValue);
+        }
+
+        if (section === 'contactLabels') {
+            state.contactLabels[field] = rawValue;
+            const inputMap = {
+                email: emailLabelInput,
+                phone: phoneLabelInput,
+                location: locationLabelInput,
+                website: websiteLabelInput
+            };
+            if (inputMap[field]) inputMap[field].value = rawValue;
         }
     }
 
@@ -1671,12 +1721,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const padding = parseFloat(box.style.padding) || 0;
             const radius = parseFloat(box.style.borderRadius) || 0;
             const shape = box.dataset.boxShape || '';
+            const fontWeight = box.style.fontWeight || '';
             const free = box.dataset.freeBox === 'true';
             const page = box.closest('.cv')?.id || '';
             const left = parseFloat(box.style.getPropertyValue('--box-left')) || 0;
             const top = parseFloat(box.style.getPropertyValue('--box-top')) || 0;
-            if (x !== 0 || y !== 0 || scale !== 1 || width || height || bg || color || border || borderWidth || padding || radius || shape || free) {
-                positions[id] = { x, y, scale, width, height, bg, color, border, borderWidth, padding, radius, shape, free, page, left, top };
+            if (x !== 0 || y !== 0 || scale !== 1 || width || height || bg || color || border || borderWidth || padding || radius || shape || fontWeight || free) {
+                positions[id] = { x, y, scale, width, height, bg, color, border, borderWidth, padding, radius, shape, fontWeight, free, page, left, top };
             }
         });
         return positions;
@@ -1712,8 +1763,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (pos.padding !== undefined) box.style.padding = `${pos.padding}px`;
             if (pos.radius !== undefined) box.style.borderRadius = `${pos.radius}px`;
+            if (pos.fontWeight) box.style.fontWeight = pos.fontWeight;
             if (pos.shape) applyBoxShape(box, pos.shape);
-            if (pos.bg || pos.color || pos.border || pos.borderWidth || pos.padding || pos.radius || pos.shape) {
+            if (pos.bg || pos.color || pos.border || pos.borderWidth || pos.padding || pos.radius || pos.shape || pos.fontWeight) {
                 box.classList.add('has-box-style');
             }
         });
@@ -1743,6 +1795,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const s = project.state;
             if (s.profile) Object.assign(state.profile, s.profile);
             if (s.socials) Object.assign(state.socials, s.socials);
+            if (s.socialIcons) Object.assign(state.socialIcons, s.socialIcons);
+            if (s.contactLabels) Object.assign(state.contactLabels, s.contactLabels);
             if (s.sectionHeadings) Object.assign(state.sectionHeadings, s.sectionHeadings);
             if (Array.isArray(s.experience)) state.experience = s.experience;
             if (Array.isArray(s.projects)) state.projects = s.projects;
@@ -1837,6 +1891,8 @@ document.addEventListener('DOMContentLoaded', () => {
             state: {
                 profile: { ...state.profile },
                 socials: { ...state.socials },
+                socialIcons: { ...state.socialIcons },
+                contactLabels: { ...state.contactLabels },
                 experience: JSON.parse(JSON.stringify(state.experience)),
                 projects: JSON.parse(JSON.stringify(state.projects)),
                 education: JSON.parse(JSON.stringify(state.education)),
@@ -1955,7 +2011,8 @@ document.addEventListener('DOMContentLoaded', () => {
             borderWidth: Number(boxBorderWidthInput?.value) || 0,
             padding: Number(boxPaddingInput?.value) || 0,
             radius: Number(boxRadiusInput?.value) || 0,
-            shape: boxShapeSelect?.value || 'default'
+            shape: boxShapeSelect?.value || 'default',
+            fontWeight: boxBoldInput?.checked ? '700' : '400'
         };
     }
 
@@ -1969,11 +2026,13 @@ document.addEventListener('DOMContentLoaded', () => {
         box.style.borderWidth = `${style.borderWidth}px`;
         box.style.padding = `${style.padding}px`;
         box.style.borderRadius = `${style.radius}px`;
+        box.style.fontWeight = style.fontWeight || '400';
         box.style.setProperty('--box-bg', style.bg);
         box.style.setProperty('--box-color', style.color);
         box.style.setProperty('--box-border', style.border);
         box.style.setProperty('--box-padding', `${style.padding}px`);
         box.style.setProperty('--box-radius', `${style.radius}px`);
+        box.style.setProperty('--box-font-weight', style.fontWeight || '400');
         applyBoxShape(box, style.shape);
     }
 
@@ -1991,6 +2050,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (boxPaddingInput) boxPaddingInput.value = 12;
             if (boxRadiusInput) boxRadiusInput.value = 12;
             if (boxBorderWidthInput) boxBorderWidthInput.value = 1;
+            if (boxBoldInput) boxBoldInput.checked = false;
             if (boxShapeSelect) boxShapeSelect.value = 'default';
             if (boxStylePreset) boxStylePreset.value = 'custom';
             setRangeLabel(boxPaddingLbl, 12);
@@ -2008,6 +2068,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (boxPaddingInput) boxPaddingInput.value = Math.round(padding);
         if (boxRadiusInput) boxRadiusInput.value = Math.min(80, Math.round(radius));
         if (boxBorderWidthInput) boxBorderWidthInput.value = Math.round(borderWidth);
+        if (boxBoldInput) boxBoldInput.checked = Number(computed.fontWeight) >= 600;
         if (boxShapeSelect) boxShapeSelect.value = activeBox.dataset.boxShape || 'default';
         if (boxStylePreset) boxStylePreset.value = 'custom';
         setRangeLabel(boxPaddingLbl, padding);
@@ -2041,7 +2102,7 @@ function rgbToHex(color) {
         }
     }
 
-    [boxBgColor, boxTextColor, boxBorderColor, boxPaddingInput, boxRadiusInput, boxBorderWidthInput, boxShapeSelect].forEach((control) => {
+    [boxBgColor, boxTextColor, boxBorderColor, boxPaddingInput, boxRadiusInput, boxBorderWidthInput, boxShapeSelect, boxBoldInput].forEach((control) => {
         if (!control) return;
         control.addEventListener('input', () => {
             setRangeLabel(boxPaddingLbl, boxPaddingInput?.value || 0);
@@ -2061,6 +2122,7 @@ function rgbToHex(color) {
             if (boxPaddingInput) boxPaddingInput.value = preset.padding;
             if (boxRadiusInput) boxRadiusInput.value = Math.min(80, preset.radius);
             if (boxBorderWidthInput) boxBorderWidthInput.value = preset.borderWidth;
+            if (boxBoldInput) boxBoldInput.checked = preset.fontWeight === '700';
             if (boxShapeSelect) boxShapeSelect.value = preset.shape;
             setRangeLabel(boxPaddingLbl, preset.padding);
             setRangeLabel(boxRadiusLbl, preset.radius);
@@ -2083,12 +2145,14 @@ function rgbToHex(color) {
             activeBox.style.borderWidth = '';
             activeBox.style.padding = '';
             activeBox.style.borderRadius = '';
+            activeBox.style.fontWeight = '';
             activeBox.style.boxShadow = '';
             activeBox.style.removeProperty('--box-bg');
             activeBox.style.removeProperty('--box-color');
             activeBox.style.removeProperty('--box-border');
             activeBox.style.removeProperty('--box-padding');
             activeBox.style.removeProperty('--box-radius');
+            activeBox.style.removeProperty('--box-font-weight');
             activeBox.classList.remove('box-shape-text', 'box-shape-rectangle', 'box-shape-square', 'box-shape-squircle', 'box-shape-pill', 'box-shape-circle');
             activeBox.classList.remove('has-box-style');
             delete activeBox.dataset.boxShape;
@@ -2110,6 +2174,10 @@ function rgbToHex(color) {
         setInputValue(phoneInput, state.profile.phone);
         setInputValue(locationInput, state.profile.location);
         setInputValue(websiteInput, state.profile.website);
+        setInputValue(emailLabelInput, state.contactLabels.email);
+        setInputValue(phoneLabelInput, state.contactLabels.phone);
+        setInputValue(locationLabelInput, state.contactLabels.location);
+        setInputValue(websiteLabelInput, state.contactLabels.website);
         setInputValue(taglineInput, state.profile.tagline);
         setInputValue(portfolioInput, state.profile.portfolio);
 
@@ -2134,6 +2202,9 @@ function rgbToHex(color) {
         setInputValue(tiktokInput, state.socials.tiktok);
         setInputValue(youtubeInput, state.socials.youtube);
         setInputValue(vimeoInput, state.socials.vimeo);
+        document.querySelectorAll('[data-social-icon]').forEach((select) => {
+            select.value = getSocialIconKey(select.dataset.socialIcon);
+        });
     }
 
     function loadProfileImage(file) {
@@ -2306,6 +2377,20 @@ function rgbToHex(color) {
         updateContact();
     });
 
+    const contactLabelInputs = {
+        email: emailLabelInput,
+        phone: phoneLabelInput,
+        location: locationLabelInput,
+        website: websiteLabelInput
+    };
+    Object.entries(contactLabelInputs).forEach(([field, input]) => {
+        if (!input) return;
+        input.addEventListener('input', () => {
+            state.contactLabels[field] = input.value;
+            updateContact();
+        });
+    });
+
     taglineInput.addEventListener('input', () => {
         state.profile.tagline = taglineInput.value;
         updateProfilePreview();
@@ -2352,6 +2437,13 @@ function rgbToHex(color) {
     vimeoInput.addEventListener('input', () => {
         state.socials.vimeo = vimeoInput.value;
         renderSocials();
+    });
+    document.querySelectorAll('[data-social-icon]').forEach((select) => {
+        select.value = getSocialIconKey(select.dataset.socialIcon);
+        select.addEventListener('change', () => {
+            state.socialIcons[select.dataset.socialIcon] = select.value;
+            renderSocials();
+        });
     });
 
     profileImageInput.addEventListener('change', (event) => {
@@ -2713,9 +2805,13 @@ function rgbToHex(color) {
                         0 12px 28px rgba(15, 23, 42, 0.11) !important;
                 }
                 .template-liquid-glass .title-pill {
-                    background: transparent !important;
-                    border-color: transparent !important;
-                    box-shadow: none !important;
+                    background:
+                        linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.34)),
+                        rgba(${accentRgb}, 0.10) !important;
+                    border-color: rgba(185, 199, 218, 0.72) !important;
+                    box-shadow:
+                        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+                        0 8px 18px rgba(15, 23, 42, 0.09) !important;
                     backdrop-filter: none !important;
                     -webkit-backdrop-filter: none !important;
                 }
@@ -3069,15 +3165,18 @@ function rgbToHex(color) {
             label = 'Profilbild';
             html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">🖼 Profilbild</span></div><div class="ctx-fields"><button class="ctx-action-btn" id="ctx-upload-photo">Ladda upp bild</button><button class="ctx-action-btn ctx-danger-btn" id="ctx-remove-photo">Ta bort bild</button><label class="ctx-label">Bildform</label><select class="ctx-input" data-ctx-profile-shape="true"><option value="rounded" ${state.profileShape==='rounded'?'selected':''}>Rundad</option><option value="square" ${state.profileShape==='square'?'selected':''}>Fyrkant</option><option value="circle" ${state.profileShape==='circle'?'selected':''}>Cirkel</option><option value="rect" ${state.profileShape==='rect'?'selected':''}>Rektangel</option></select></div></div>`;
         } else if (ctx && ctx.type === 'socials') {
-            const labels = { linkedin: 'LinkedIn', behance: 'Behance', instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', vimeo: 'Vimeo' };
+            const labels = { linkedin: 'Rad 1', behance: 'Rad 2', instagram: 'Rad 3', tiktok: 'Rad 4', youtube: 'Rad 5', vimeo: 'Rad 6' };
+            const iconOptions = ['linkedin', 'behance', 'instagram', 'tiktok', 'youtube', 'vimeo', 'web']
+                .map((key) => `<option value="${key}" ${getSocialIconKey(ctx.field) === key ? 'selected' : ''}>${key}</option>`)
+                .join('');
             label = labels[ctx.field] || 'Social';
-            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">🔗 ${label}</span></div><div class="ctx-fields"><label class="ctx-label">${label}</label><input type="text" class="ctx-input" data-ctx-social="${ctx.field}" value="${escapeHtml(state.socials[ctx.field] || '')}"></div></div>`;
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">🔗 ${label}</span></div><div class="ctx-fields"><label class="ctx-label">Ikon</label><select class="ctx-input" data-ctx-social-icon="${ctx.field}">${iconOptions}</select><label class="ctx-label">Text / länk</label><input type="text" class="ctx-input" data-ctx-social="${ctx.field}" value="${escapeHtml(state.socials[ctx.field] || '')}"></div></div>`;
         } else if (ctx && ctx.type === 'qr') {
             label = 'QR-kod';
             html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">◻ QR-kod</span></div><div class="ctx-fields"><label class="ctx-label">Portfolio URL</label><input type="text" class="ctx-input" data-ctx-profile="portfolio" value="${escapeHtml(state.profile.portfolio || '')}"><label class="ctx-label">Storlek (px)</label><div style="display:flex;gap:8px;align-items:center"><input type="range" class="ctx-input" id="ctx-qr-size" min="40" max="300" step="8" value="${state.qrSize || 120}" style="flex:1"><span id="ctx-qr-size-lbl" style="min-width:34px;font-size:0.75rem;color:var(--ui-muted,#888)">${state.qrSize || 120}px</span></div><button class="ctx-action-btn" id="ctx-gen-qr">Generera QR-kod</button></div></div>`;
         } else if (ctx && ctx.type === 'contact') {
             label = 'Kontakt';
-            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">📋 Kontakt</span></div><div class="ctx-fields"><label class="ctx-label">E-post</label><input type="text" class="ctx-input" data-ctx-profile="email" value="${escapeHtml(state.profile.email || '')}"><label class="ctx-label">Telefon</label><input type="text" class="ctx-input" data-ctx-profile="phone" value="${escapeHtml(state.profile.phone || '')}"><label class="ctx-label">Plats</label><input type="text" class="ctx-input" data-ctx-profile="location" value="${escapeHtml(state.profile.location || '')}"><label class="ctx-label">Webbplats</label><input type="text" class="ctx-input" data-ctx-profile="website" value="${escapeHtml(state.profile.website || '')}"></div></div>`;
+            html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">📋 Kontakt</span></div><div class="ctx-fields"><label class="ctx-label">Etikett 1</label><input type="text" class="ctx-input" data-ctx-contact-label="email" value="${escapeHtml(state.contactLabels.email || '')}"><label class="ctx-label">Värde 1</label><input type="text" class="ctx-input" data-ctx-profile="email" value="${escapeHtml(state.profile.email || '')}"><label class="ctx-label">Etikett 2</label><input type="text" class="ctx-input" data-ctx-contact-label="phone" value="${escapeHtml(state.contactLabels.phone || '')}"><label class="ctx-label">Värde 2</label><input type="text" class="ctx-input" data-ctx-profile="phone" value="${escapeHtml(state.profile.phone || '')}"><label class="ctx-label">Etikett 3</label><input type="text" class="ctx-input" data-ctx-contact-label="location" value="${escapeHtml(state.contactLabels.location || '')}"><label class="ctx-label">Värde 3</label><input type="text" class="ctx-input" data-ctx-profile="location" value="${escapeHtml(state.profile.location || '')}"><label class="ctx-label">Etikett 4</label><input type="text" class="ctx-input" data-ctx-contact-label="website" value="${escapeHtml(state.contactLabels.website || '')}"><label class="ctx-label">Värde 4</label><input type="text" class="ctx-input" data-ctx-profile="website" value="${escapeHtml(state.profile.website || '')}"></div></div>`;
         } else {
             html = `<div class="panel-section"><div class="ctx-header"><span class="ctx-title">Element</span></div><div class="ctx-fields"><p style="font-size:0.75rem;color:var(--ui-muted,#888)">Justera box-stilen nedan.</p></div></div>`;
         }
@@ -3126,7 +3225,20 @@ function rgbToHex(color) {
             state.profile[field] = t.value;
             const inputMap = { name: nameInput, title: titleInput, tagline: taglineInput, email: emailInput, phone: phoneInput, location: locationInput, website: websiteInput, portfolio: portfolioInput };
             if (inputMap[field]) inputMap[field].value = t.value;
-            if (field === 'portfolio') { renderQr(); } else { updateProfilePreview(); }
+            if (field === 'portfolio') {
+                renderQr();
+            } else if (['email', 'phone', 'location', 'website'].includes(field)) {
+                updateContact();
+            } else {
+                updateProfilePreview();
+            }
+        }
+        if (t.dataset.ctxContactLabel) {
+            const field = t.dataset.ctxContactLabel;
+            state.contactLabels[field] = t.value;
+            const input = contactLabelInputs?.[field];
+            if (input) input.value = t.value;
+            updateContact();
         }
         if (t.dataset.ctxSocial) {
             const field = t.dataset.ctxSocial;
@@ -3135,10 +3247,24 @@ function rgbToHex(color) {
             if (inputMap[field]) inputMap[field].value = t.value;
             renderSocials();
         }
+        if (t.dataset.ctxSocialIcon) {
+            const field = t.dataset.ctxSocialIcon;
+            state.socialIcons[field] = t.value;
+            const select = document.querySelector(`[data-social-icon="${field}"]`);
+            if (select) select.value = t.value;
+            renderSocials();
+        }
     }
 
     function handleContextChange(event) {
         const t = event.target;
+        if (t.dataset.ctxSocialIcon) {
+            const field = t.dataset.ctxSocialIcon;
+            state.socialIcons[field] = t.value;
+            const select = document.querySelector(`[data-social-icon="${field}"]`);
+            if (select) select.value = t.value;
+            renderSocials();
+        }
         if (t.dataset.ctxProfileShape) {
             state.profileShape = t.value;
             if (profileShapeSelect) profileShapeSelect.value = t.value;

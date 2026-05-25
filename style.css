@@ -1385,6 +1385,19 @@ input[type="color"] {
 .secondary-btn { background: rgba(255,255,255,0.06); border: 1px dashed var(--ui-border); border-radius:7px; padding:8px 12px; color: var(--ui-text); font-family:inherit; cursor:pointer; font-size:0.82rem; }
 .secondary-btn:hover { border-color: var(--ui-accent); color: var(--ui-accent); }
 
+.social-icon-select {
+    flex: 0 0 92px;
+    min-width: 0;
+}
+
+#email-label-input,
+#phone-label-input,
+#location-label-input,
+#website-label-input {
+    flex: 0 0 84px;
+    min-width: 0;
+}
+
 .cv-wrapper {
     transform-origin: top center;
     transition: transform 0.2s ease;
@@ -1705,10 +1718,12 @@ a.contact-item {
     border-color: var(--box-border, currentColor);
     padding: var(--box-padding, inherit);
     border-radius: var(--box-radius, inherit);
+    font-weight: var(--box-font-weight, inherit);
 }
 
 .draggable-box.has-box-style :where(.entry-title, .project-title, .skill-name, .entry-meta, .entry-description, .editable, .editable-block, .project-link, #cv-qr-label) {
     color: inherit;
+    font-weight: inherit;
 }
 
 .box-shape-text {
@@ -2679,9 +2694,13 @@ a.contact-item {
     }
 
     .template-liquid-glass .title-pill {
-        background: transparent !important;
-        border-color: transparent !important;
-        box-shadow: none !important;
+        background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.34)),
+            rgba(125, 211, 252, 0.10) !important;
+        border-color: rgba(185, 199, 218, 0.72) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.88),
+            0 8px 18px rgba(15, 23, 42, 0.09) !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
     }
