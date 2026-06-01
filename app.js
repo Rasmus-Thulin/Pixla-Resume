@@ -2295,6 +2295,157 @@ function rgbToHex(color) {
         };
     }
 
+    function parseRgbParts(color, fallback = '0, 0, 0') {
+        const probe = document.createElement('span');
+        probe.style.color = color || `rgb(${fallback})`;
+        document.body.appendChild(probe);
+        const computed = makeCanvasSafeCss(getComputedStyle(probe).color);
+        probe.remove();
+        const modernMatch = computed.match(/rgba?\((\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)(?:\s*\/\s*[\d.]+%?)?\)/);
+        const legacyMatch = computed.match(/rgba?\((\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)/);
+        const match = modernMatch || legacyMatch;
+        if (!match) return fallback;
+        return `${Math.round(Number(match[1]))}, ${Math.round(Number(match[2]))}, ${Math.round(Number(match[3]))}`;
+    }
+
+    function cssColorFunctionToRgba(match, components) {
+        const [channels, alphaPart = '1'] = components.split('/').map(part => part.trim());
+        const values = channels.split(/[\s,]+/).filter(Boolean).slice(0, 3);
+        if (values.length < 3) return match;
+        const toByte = (value) => {
+            const trimmed = value.trim();
+            const number = Number.parseFloat(trimmed);
+            if (!Number.isFinite(number)) return 0;
+            if (trimmed.endsWith('%')) return Math.round(Math.min(Math.max(number, 0), 100) * 2.55);
+            return Math.round(Math.min(Math.max(number, 0), 1) * 255);
+        };
+        const toAlpha = (value) => {
+            const number = Number.parseFloat(value);
+            if (!Number.isFinite(number)) return 1;
+            return value.endsWith('%')
+                ? Math.min(Math.max(number / 100, 0), 1)
+                : Math.min(Math.max(number, 0), 1);
+        };
+        return `rgba(${toByte(values[0])}, ${toByte(values[1])}, ${toByte(values[2])}, ${toAlpha(alphaPart)})`;
+    }
+
+    function makeCanvasSafeCss(value) {
+        if (!value || !value.includes('color(')) return value;
+        return value.replace(/color\(\s*[a-z0-9-]+\s+([^)]*)\)/gi, cssColorFunctionToRgba);
+    }
+
+    function makePngExportCloneSafe(clonedDoc) {
+        const clonedPages = clonedDoc.getElementById('cv-pages');
+        if (!clonedPages) return;
+
+        const exportStyle = clonedDoc.createElement('style');
+        exportStyle.textContent = `
+            *,
+            *::before,
+            *::after {
+                background-image: none !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+            }
+            .cv,
+            .cv::before,
+            .cv::after,
+            .cv-bg-shape,
+            .cv-bg-shape-alt,
+            .cv-header,
+            .profile-photo,
+            .entry,
+            .project-card,
+            .tool-chip,
+            .social-link,
+            .qr-card,
+            .contact-item,
+            .editable-block,
+            .title-pill,
+            .meter-bar,
+            .meter-bar span,
+            .meter-dot,
+            .meter-star {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            #cv-pages *::before,
+            #cv-pages *::after {
+                background: none !important;
+                background-image: none !important;
+                box-shadow: none !important;
+                color: inherit !important;
+                border-color: currentColor !important;
+            }
+            #cv-pages .cv::before,
+            #cv-pages .cv::after,
+            #cv-pages .template-liquid-glass.cv::before,
+            #cv-pages .template-liquid-glass.cv::after,
+            #cv-pages .cv-bg-shape,
+            #cv-pages .cv-bg-shape-alt {
+                background: none !important;
+                background-image: none !important;
+                filter: none !important;
+            }
+            .bg-story {
+                --cv-bg-overlay: linear-gradient(90deg, rgba(15, 17, 22, 0.04) 1px, transparent 1px) !important;
+            }
+        `;
+        clonedDoc.head.appendChild(exportStyle);
+
+        const sourcePages = Array.from(cvPages.querySelectorAll('.cv'));
+        const targetPages = Array.from(clonedPages.querySelectorAll('.cv'));
+        targetPages.forEach((page, index) => {
+            const sourcePage = sourcePages[index] || sourcePages[0] || cv;
+            const sourceStyles = getComputedStyle(sourcePage);
+            const accentRgb = parseRgbParts(sourceStyles.getPropertyValue('--cv-accent') || accentColorInput?.value, '255, 107, 61');
+            const accent2Rgb = parseRgbParts(sourceStyles.getPropertyValue('--cv-accent-2') || cvSecondaryColor?.value, '46, 124, 255');
+            const primaryRgb = parseRgbParts(sourceStyles.getPropertyValue('--cv-primary'), accentRgb);
+            const secondaryRgb = parseRgbParts(sourceStyles.getPropertyValue('--cv-secondary'), accent2Rgb);
+            const textRgb = parseRgbParts(sourceStyles.getPropertyValue('--cv-text'), '15, 17, 22');
+            const mutedRgb = parseRgbParts(sourceStyles.getPropertyValue('--cv-muted'), '82, 97, 115');
+            const shadowRgb = parseRgbParts(sourceStyles.getPropertyValue('--cv-shadow'), '15, 23, 42');
+            const pageBackground = makeCanvasSafeCss(sourceStyles.getPropertyValue('background'));
+
+            if (pageBackground) page.style.setProperty('background', pageBackground, 'important');
+            page.style.setProperty('--cv-primary', `rgb(${primaryRgb})`);
+            page.style.setProperty('--cv-secondary', `rgb(${secondaryRgb})`);
+            page.style.setProperty('--cv-accent', `rgb(${accentRgb})`);
+            page.style.setProperty('--cv-accent-2', `rgb(${accent2Rgb})`);
+            page.style.setProperty('--cv-text', `rgb(${textRgb})`);
+            page.style.setProperty('--cv-muted', `rgb(${mutedRgb})`);
+            page.style.setProperty('--cv-hairline', `rgba(${textRgb}, 0.12)`);
+            page.style.setProperty('--cv-glass', 'rgba(255, 255, 255, 0.52)');
+            page.style.setProperty('--cv-ink-soft', `rgba(${textRgb}, 0.78)`);
+            page.style.setProperty('--cv-card-shadow', `0 18px 50px rgba(${shadowRgb}, 0.16)`);
+            page.style.setProperty('--liquid-tint-a', `rgba(${accentRgb}, 0.20)`);
+            page.style.setProperty('--liquid-tint-b', `rgba(${accent2Rgb}, 0.18)`);
+
+            if (page.classList.contains('bg-clean')) {
+                page.style.setProperty('--cv-bg-pattern', `linear-gradient(90deg, rgba(${textRgb}, 0.04) 1px, transparent 1px)`);
+                page.style.setProperty('--cv-bg-overlay', `linear-gradient(135deg, transparent 0 58%, rgba(${accentRgb}, 0.05) 58% 100%)`);
+            }
+            if (page.classList.contains('bg-gradient')) {
+                page.style.setProperty('--cv-bg', `linear-gradient(135deg, rgba(${accentRgb}, 0.18), #ffffff 48%, rgba(${accent2Rgb}, 0.17))`);
+                page.style.setProperty('--cv-bg-pattern', `linear-gradient(135deg, rgba(${accentRgb}, 0.24), transparent 35%, rgba(${accent2Rgb}, 0.18))`);
+                page.style.setProperty('--cv-bg-overlay', `repeating-linear-gradient(135deg, rgba(${textRgb}, 0.05) 0 1px, transparent 1px 18px)`);
+            }
+            if (page.classList.contains('bg-story')) {
+                page.style.setProperty('--cv-bg-pattern', `linear-gradient(135deg, rgba(${accentRgb}, 0.22), transparent 44%, rgba(${accent2Rgb}, 0.18))`);
+                page.style.setProperty('--cv-bg-overlay', `linear-gradient(90deg, rgba(${textRgb}, 0.04) 1px, transparent 1px)`);
+            }
+        });
+
+        clonedPages.querySelectorAll('*').forEach((el) => {
+            const styles = clonedDoc.defaultView.getComputedStyle(el);
+            Array.from(styles).forEach((prop) => {
+                const value = styles.getPropertyValue(prop);
+                const safeValue = makeCanvasSafeCss(value);
+                if (safeValue !== value) el.style.setProperty(prop, safeValue, 'important');
+            });
+        });
+    }
+
     templateGrid.addEventListener('click', (event) => {
         const button = event.target.closest('[data-template]');
         if (!button) return;
@@ -2981,6 +3132,7 @@ function rgbToHex(color) {
                 backgroundColor: null,
                 logging: false,
                 onclone: (clonedDoc) => {
+                    makePngExportCloneSafe(clonedDoc);
                     clonedDoc.querySelectorAll('.box-resize-handle, .box-drag-handle, .box-delete-btn, .page-breaker-line')
                         .forEach((el) => el.remove());
                     clonedDoc.querySelectorAll('img').forEach((img) => {
